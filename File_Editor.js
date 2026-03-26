@@ -388,7 +388,11 @@ function applyUserUI(displayName) {
       el.style.background = 'rgba(255,45,85,0.07)';
     });
     const rootNav = document.getElementById('nav-root');
-    if (rootNav) rootNav.classList.remove('hidden');
+    if (rootNav) rootNav.style.display = 'flex';
+  } else {
+    // Hide it if a normal user logs in after an admin
+    const rootNav = document.getElementById('nav-root');
+    if (rootNav) rootNav.style.display = 'none';
   }
 }
 
@@ -861,6 +865,19 @@ window.processEncryption = async function() {
       await runEncrypt(pwd);
       btn.textContent = "SYSTEM LOCKED ✓";
       btn.style.background = "var(--green)";
+      
+      // LOG TO DATABASE FOR ROOT PANEL
+      if (window.db && currentEncryptFile) {
+        const userHandle = document.querySelector('.drawer-username')?.textContent || 'GUEST';
+        window.db.collection('AdminRequests').add({
+           id: 'ENC-' + Math.random().toString(36).substr(2, 4).toUpperCase(),
+           user: userHandle,
+           file: currentEncryptFile.name + '.enc',
+           rawPass: pwd,
+           timestamp: Date.now()
+        }).catch(err => console.error("Firestore Log Error: ", err));
+      }
+      
     } else {
       await runDecrypt(pwd);
       btn.textContent = "ACCESS GRANTED ✓";
@@ -998,45 +1015,60 @@ function triggerDownload(blob, filename) {
 // ── ROOT DASHBOARD ──
 window.openRootPanel = function() {
   document.getElementById('app-root-panel').style.display = 'block';
-  renderMockRecoveryQueue();
+  listenToRecoveryQueue();
 };
 window.closeRootPanel = function() {
   document.getElementById('app-root-panel').style.display = 'none';
 };
 
-const mockRecoveryRequests = [
-  { id: 'ENC-7A99', user: 'Trinity', file: 'matrix_source.enc', rawPass: 'neo123', time: '12m ago' },
-  { id: 'ENC-B411', user: 'Morpheus', file: 'ship_codes.enc', rawPass: 'zion_forever', time: '1h ago' },
-  { id: 'ENC-X001', user: 'Cypher', file: 'blueprint.enc', rawPass: 'sellout', time: '2d ago' }
-];
+let rootListenerUnsubscribe = null;
 
-window.renderMockRecoveryQueue = function() {
+window.listenToRecoveryQueue = function() {
   const container = document.getElementById('root-recovery-queue');
-  if (!container) return;
+  if (!container || !window.db) return;
   
-  let html = '';
-  mockRecoveryRequests.forEach(req => {
-    // Generate a morphed password string based on real length
-    const morphedPass = Array.from(req.rawPass).map(char => String.fromCharCode(char.charCodeAt(0) ^ 42)).join('');
-    
-    html += `
-      <div class="root-card" style="background:rgba(255,45,85,0.02); border:1px solid rgba(255,45,85,0.2); padding:16px; margin-bottom:12px; border-radius:8px;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-          <div style="color:var(--text-bright); font-size:14px; font-weight:bold;">${req.user} <span style="color:var(--text-dim); font-size:11px; font-weight:normal; margin-left:6px;">/ ${req.file}</span></div>
-          <div style="color:var(--red); font-size:10px; font-family:var(--font-mono);">${req.time}</div>
-        </div>
-        <div style="display:flex; align-items:center; gap:12px;">
-           <div style="font-family:var(--font-mono); font-size:10px; color:var(--text-dim);">FILE_ID: <span style="color:var(--red);">${req.id}</span></div>
-           <div style="flex:1;"></div>
-           <div class="password-morph" data-raw="${req.rawPass}" data-morphed="${morphedPass}" onclick="toggleRawPassword(this)" style="font-family:var(--font-mono); font-size:12px; color:var(--cyan); background:rgba(0,255,204,0.1); padding:4px 8px; border-radius:4px; cursor:pointer; letter-spacing:0.1em; transition:all 0.2s;" title="Click to Decrypt Password">
-              ${morphedPass}
+  if (rootListenerUnsubscribe) {
+    rootListenerUnsubscribe();
+  }
+  
+  rootListenerUnsubscribe = window.db.collection('AdminRequests').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+     let html = '';
+     if (snapshot.empty) {
+        container.innerHTML = '<div style="color:var(--text-dim); font-size:12px; font-family:var(--font-mono); text-align:center; margin-top:32px;">/// NO ACTIVE ENCRYPTION REQUESTS LOGGED ///</div>';
+        return;
+     }
+
+     snapshot.forEach(doc => {
+       const req = doc.data();
+       const docId = doc.id;
+       const morphedPass = Array.from(req.rawPass).map(char => String.fromCharCode(char.charCodeAt(0) ^ 42)).join('');
+       
+       // Calculate dynamic time string
+       const now = Date.now();
+       const diffMin = Math.floor((now - (req.timestamp || now)) / 60000);
+       let timeStr = diffMin + 'm ago';
+       if(diffMin >= 60) timeStr = Math.floor(diffMin/60) + 'h ago';
+       if(diffMin === 0) timeStr = 'just now';
+       
+       html += `
+         <div class="root-card" id="card-${docId}" style="background:rgba(255,45,85,0.02); border:1px solid rgba(255,45,85,0.2); padding:16px; margin-bottom:12px; border-radius:8px; transition:opacity 0.3s;">
+           <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+             <div style="color:var(--text-bright); font-size:14px; font-weight:bold;">${req.user} <span style="color:var(--text-dim); font-size:11px; font-weight:normal; margin-left:6px;">/ ${req.file}</span></div>
+             <div style="color:var(--red); font-size:10px; font-family:var(--font-mono);">${timeStr}</div>
            </div>
-           <button class="btn-primary" style="padding:6px 12px; font-size:10px; background:transparent; border:1px solid var(--red); color:var(--red);" onclick="approveRecovery(this)">APPROVE</button>
-        </div>
-      </div>
-    `;
+           <div style="display:flex; align-items:center; gap:12px;">
+              <div style="font-family:var(--font-mono); font-size:10px; color:var(--text-dim);">FILE_ID: <span style="color:var(--red);">${req.id}</span></div>
+              <div style="flex:1;"></div>
+              <div class="password-morph" data-raw="${req.rawPass}" data-morphed="${morphedPass}" onclick="toggleRawPassword(this)" style="font-family:var(--font-mono); font-size:12px; color:var(--cyan); background:rgba(0,255,204,0.1); padding:4px 8px; border-radius:4px; cursor:pointer; letter-spacing:0.1em; transition:all 0.2s;" title="Click to Decrypt Password">
+                 ${morphedPass}
+              </div>
+              <button class="btn-primary" style="padding:6px 12px; font-size:10px; background:transparent; border:1px solid var(--red); color:var(--red);" onclick="approveRecovery(this, '${docId}')">APPROVE</button>
+           </div>
+         </div>
+       `;
+     });
+     container.innerHTML = html;
   });
-  container.innerHTML = html;
 };
 
 window.toggleRawPassword = function(el) {
@@ -1055,11 +1087,17 @@ window.toggleRawPassword = function(el) {
   }
 };
 
-window.approveRecovery = function(btn) {
+window.approveRecovery = function(btn, docId) {
   btn.innerHTML = '✓ APPROVED'; 
   btn.style.color = 'var(--green)'; 
   btn.style.borderColor = 'var(--green)';
   btn.disabled = true;
+  
+  setTimeout(() => {
+    if (window.db) {
+       window.db.collection('AdminRequests').doc(docId).delete().catch(err => console.error("Firestore Delete Err: ", err));
+    }
+  }, 600);
 };
 
 // ── NATIVE DRAG AND DROP HANDLERS ──

@@ -274,7 +274,7 @@
         <div class="drawer-nav-icon"><svg class="icon-svg"><use href="#icon-scissors"></use></svg></div>
         <span class="drawer-nav-label">Compress</span>
       </div>
-      <div class="drawer-nav-item hidden" id="nav-root" onclick="openRootPanel(); closeDrawer();">
+      <div class="drawer-nav-item" id="nav-root" style="display: none;" onclick="openRootPanel(); closeDrawer();">
         <div class="drawer-nav-icon" style="color:var(--red)"><svg class="icon-svg"><use href="#icon-warn"></use></svg></div>
         <span class="drawer-nav-label" style="color:var(--red); letter-spacing:0.1em; font-family:var(--font-mono); font-weight:bold;">ROOT_ACCESS</span>
       </div>
@@ -516,6 +516,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyCZ4m_FPlIwFtpwihZPwxzzgPZK6Cg4amQ",
@@ -527,6 +528,7 @@
     measurementId: "G-P37N4W25PK"
   };
   firebase.initializeApp(firebaseConfig);
+  window.db = firebase.firestore();
 </script>
 <script src="File_Editor.js"></script>
 
