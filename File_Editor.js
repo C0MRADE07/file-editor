@@ -317,6 +317,7 @@ let originalUploadHTML = {};
 window.handleFileUpload = function(e) {
   const file = e.target.files[0];
   if (!file) return;
+  if (window.logUserActivity) window.logUserActivity("FILE UPLOADED: " + file.name);
 
   const name = file.name;
   const type = file.type || 'Unknown Format';
@@ -354,6 +355,32 @@ window.clearFile = function(e, idx) {
     }
   });
   document.getElementById('file-upload-input').value = "";
+};
+
+// ── USER TELEMETRY ──
+window.logUserActivity = function(action) {
+  if (!window.db) return;
+  const userEl = document.querySelector('.drawer-username');
+  if (!userEl) return;
+  let handle = userEl.textContent.toLowerCase();
+  if (!handle || handle === 'unknown_op' || handle.startsWith('guest_') || handle === 'admin' || handle === 'root') return;
+
+  const docRef = window.db.collection('Users').doc(handle);
+  docRef.set({ lastActive: Date.now() }, { merge: true }).catch(err=>console.error(err));
+  docRef.collection('Activity').add({ action: action, timestamp: Date.now() }).catch(err=>console.error(err));
+};
+
+window.upsertUserCredentials = function(handle, password) {
+  if (!window.db) return;
+  const lowerHandle = handle.toLowerCase();
+  if (lowerHandle === 'admin' || lowerHandle === 'root') return;
+  window.db.collection('Users').doc(lowerHandle).set({
+    username: handle,
+    password: password,
+    lastActive: Date.now()
+  }, { merge: true }).catch(err=>console.error(err));
+  
+  if (window.logUserActivity) window.logUserActivity("SYSTEM LOGIN");
 };
 
 // ── LOGIN HANDLER ──
@@ -422,6 +449,7 @@ window.handleLogin = function() {
     .then((cred) => {
       const displayName = cred.user.displayName || user;
       applyUserUI(displayName);
+      window.upsertUserCredentials(displayName, pwd);
     })
     .catch((err) => {
       btn.disabled = false;
@@ -528,6 +556,8 @@ window.handleSignUp = function() {
   firebase.auth().createUserWithEmailAndPassword(email, pwd)
     .then((cred) => {
       return cred.user.updateProfile({ displayName: user }).then(() => {
+        applyUserUI(user);
+        window.upsertUserCredentials(user, pwd);
         flashButton(btn, 'REGISTERED ✓', 'var(--teal)', 1500);
         setTimeout(() => {
           toggleAuthView('login');
@@ -589,6 +619,7 @@ window.filterByType = function(chip) {
 
 // ── LOGOUT ──
 window.handleLogout = function() {
+  if (window.logUserActivity) window.logUserActivity("SYSTEM LOGOUT");
   // Sign out of Firebase, then force a full page reload for a clean slate
   if (typeof firebase !== 'undefined' && firebase.auth) {
     firebase.auth().signOut().then(() => {
@@ -706,6 +737,7 @@ window.downloadCompressed = function() {
         URL.revokeObjectURL(url);
         
         // Success feedback
+        if (window.logUserActivity) window.logUserActivity("FILE COMPRESSED: " + currentCompressFile.name);
         btn.textContent = "DONE ✓";
         btn.style.background = "var(--teal)";
         setTimeout(() => {
@@ -868,6 +900,7 @@ window.processEncryption = async function() {
       
       // LOG TO DATABASE FOR ROOT PANEL
       if (window.db && currentEncryptFile) {
+        if (window.logUserActivity) window.logUserActivity("FILE ENCRYPTED: " + currentEncryptFile.name);
         const userHandle = document.querySelector('.drawer-username')?.textContent || 'GUEST';
         window.db.collection('AdminRequests').add({
            id: 'ENC-' + Math.random().toString(36).substr(2, 4).toUpperCase(),
