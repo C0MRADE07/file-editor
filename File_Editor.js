@@ -336,10 +336,10 @@ window.handleFileUpload = function(e) {
     
     zone.innerHTML = `
       <div class="file-preview-card" style="display:flex; flex-direction:column; align-items:center; position:relative; padding:10px 0; animation: fade-up 0.4s ease both;">
-        <div class="close-btn" onclick="clearFile(event, ${idx})" style="position:absolute; top:-24px; right:-14px; width:26px; height:26px; border-radius:50%; background:var(--red); color:white; display:flex; align-items:center; justify-content:center; font-family:var(--font-head); font-size:12px; font-weight:bold; cursor:pointer; box-shadow:0 0 12px rgba(255,45,85,0.4); z-index:10;">✕</div>
+        <div class="close-btn" onclick="clearFile(event, ${idx})" style="position:absolute; top:-24px; right:-14px; width:26px; height:26px; border-radius:50%; background:var(--red); color:white; display:flex; align-items:center; justify-content:center; font-family:var(--font-head); font-size:14px; font-weight:bold; cursor:pointer; box-shadow:0 0 12px rgba(255,45,85,0.4); z-index:10;">✕</div>
         <div class="file-ext ${colorClass}" style="width:54px; height:60px; font-size:14px; margin-bottom:16px;">${ext.substring(0,4)}</div>
         <div class="upload-title" style="font-size:16px; word-break:break-all; max-width:80%;">${name}</div>
-        <div class="upload-sub" style="margin-top:8px; font-size:13px;">${sizeMB} — ${type}</div>
+        <div class="upload-sub" style="margin-top:8px; font-size:14px;">${sizeMB} — ${type}</div>
       </div>
     `;
     zone.removeAttribute('onclick'); 
@@ -1046,15 +1046,42 @@ function triggerDownload(blob, filename) {
 }
 
 // ── ROOT DASHBOARD ──
-window.openRootPanel = function() {
-  document.getElementById('app-root-panel').style.display = 'block';
-  listenToRecoveryQueue();
-};
-window.closeRootPanel = function() {
-  document.getElementById('app-root-panel').style.display = 'none';
+window.switchRootTab = function(tabName) {
+  document.querySelectorAll('.root-nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.root-tab').forEach(el => el.style.display = 'none');
+  
+  if(tabName === 'telemetry') {
+    document.querySelectorAll('.root-nav-item')[0].classList.add('active');
+    document.getElementById('root-tab-telemetry').style.display = 'block';
+  } else if(tabName === 'users') {
+    document.querySelectorAll('.root-nav-item')[1].classList.add('active');
+    document.getElementById('root-tab-users').style.display = 'block';
+  } else if(tabName === 'activity') {
+    document.querySelectorAll('.root-nav-item')[2].classList.add('active');
+    document.getElementById('root-tab-activity').style.display = 'block';
+  }
 };
 
 let rootListenerUnsubscribe = null;
+let usersListenerUnsubscribe = null;
+let activityListenerUnsubscribe = null;
+let userRegistryUnsubscribe = null;
+
+window.openRootPanel = function() {
+  document.getElementById('app-root-panel').style.display = 'block';
+  switchRootTab('telemetry');
+  listenToRecoveryQueue();
+  listenToUsersList();
+  listenToGlobalActivity();
+  if (window.listenToUserRegistry) window.listenToUserRegistry();
+};
+window.closeRootPanel = function() {
+  document.getElementById('app-root-panel').style.display = 'none';
+  if (rootListenerUnsubscribe) rootListenerUnsubscribe();
+  if (usersListenerUnsubscribe) usersListenerUnsubscribe();
+  if (activityListenerUnsubscribe) activityListenerUnsubscribe();
+  if (userRegistryUnsubscribe) userRegistryUnsubscribe();
+};
 
 window.listenToRecoveryQueue = function() {
   const container = document.getElementById('root-recovery-queue');
@@ -1067,7 +1094,7 @@ window.listenToRecoveryQueue = function() {
   rootListenerUnsubscribe = window.db.collection('AdminRequests').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
      let html = '';
      if (snapshot.empty) {
-        container.innerHTML = '<div style="color:var(--text-dim); font-size:12px; font-family:var(--font-mono); text-align:center; margin-top:32px;">/// NO ACTIVE ENCRYPTION REQUESTS LOGGED ///</div>';
+        container.innerHTML = '<div style="color:var(--text-dim); font-size:14px; font-family:var(--font-mono); text-align:center; margin-top:32px;">/// NO ACTIVE ENCRYPTION REQUESTS LOGGED ///</div>';
         return;
      }
 
@@ -1086,16 +1113,22 @@ window.listenToRecoveryQueue = function() {
        html += `
          <div class="root-card" id="card-${docId}" style="background:rgba(255,45,85,0.02); border:1px solid rgba(255,45,85,0.2); padding:16px; margin-bottom:12px; border-radius:8px; transition:opacity 0.3s;">
            <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-             <div style="color:var(--text-bright); font-size:14px; font-weight:bold;">${req.user} <span style="color:var(--text-dim); font-size:11px; font-weight:normal; margin-left:6px;">/ ${req.file}</span></div>
-             <div style="color:var(--red); font-size:10px; font-family:var(--font-mono);">${timeStr}</div>
+             <div style="color:var(--text-bright); font-size:16px; font-weight:bold;">${req.user} <span style="color:var(--text-dim); font-size:14px; font-weight:normal; margin-left:6px;">/ ${req.file}</span></div>
+             <div style="color:var(--red); font-size:14px; font-family:var(--font-mono);">${timeStr}</div>
            </div>
            <div style="display:flex; align-items:center; gap:12px;">
-              <div style="font-family:var(--font-mono); font-size:10px; color:var(--text-dim);">FILE_ID: <span style="color:var(--red);">${req.id}</span></div>
+              <div style="font-family:var(--font-mono); font-size:14px; color:var(--text-dim);">FILE_ID: <span style="color:var(--red);">${req.id}</span></div>
               <div style="flex:1;"></div>
-              <div class="password-morph" data-raw="${req.rawPass}" data-morphed="${morphedPass}" onclick="toggleRawPassword(this)" style="font-family:var(--font-mono); font-size:12px; color:var(--cyan); background:rgba(0,255,204,0.1); padding:4px 8px; border-radius:4px; cursor:pointer; letter-spacing:0.1em; transition:all 0.2s;" title="Click to Decrypt Password">
+              <div class="password-morph" data-raw="${req.rawPass}" data-morphed="${morphedPass}" onclick="toggleRawPassword(this)" style="font-family:var(--font-mono); font-size:16px; color:var(--cyan); background:rgba(0,255,204,0.1); padding:4px 8px; border-radius:4px; cursor:pointer; letter-spacing:0.1em; transition:all 0.2s;" title="Click to Decrypt Password">
                  ${morphedPass}
               </div>
-              <button class="btn-primary" style="padding:6px 12px; font-size:10px; background:transparent; border:1px solid var(--red); color:var(--red);" onclick="approveRecovery(this, '${docId}')">APPROVE</button>
+              <button class="btn-primary" style="padding:6px 12px; font-size:12px; background:transparent; border:1px solid var(--red); color:var(--red);" onclick="approveRecovery(this, '${docId}')">APPROVE</button>
+           </div>
+           <div class="activity-log" style="background:rgba(0,0,0,0.2); border-radius:4px; padding:10px; max-height:120px; overflow-y:auto; border:1px solid rgba(255,45,85,0.1); margin-top:12px;">
+             <div style="font-family:var(--font-mono); font-size:12px; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.1em;">Latest Activity Logs</div>
+             <div id="activity-${docId}" style="display:flex; flex-direction:column; gap:6px;">
+               <div style="color:var(--text-dim); font-size:12px; font-family:var(--font-mono);">Fetching streams...</div>
+             </div>
            </div>
          </div>
        `;
@@ -1131,6 +1164,170 @@ window.approveRecovery = function(btn, docId) {
        window.db.collection('AdminRequests').doc(docId).delete().catch(err => console.error("Firestore Delete Err: ", err));
     }
   }, 600);
+};
+
+window.listenToUsersList = function() {
+  const container = document.getElementById('root-users-list');
+  if (!container || !window.db) return;
+  
+  if (usersListenerUnsubscribe) {
+    usersListenerUnsubscribe();
+  }
+  
+  // Try to order by lastActive, fallback to without if index is missing
+  const collectionRef = window.db.collection('Users');
+  
+  usersListenerUnsubscribe = collectionRef.orderBy('lastActive', 'desc').onSnapshot(snapshot => {
+     renderUsersList(snapshot, container);
+  }, err => {
+     console.warn("Firestore index missing, falling back to unordered fetch.", err);
+     usersListenerUnsubscribe = collectionRef.onSnapshot(snapshot => {
+         renderUsersList(snapshot, container);
+     });
+  });
+};
+
+// New function for user registry
+window.listenToUserRegistry = function() {
+  const container = document.getElementById('root-user-registry');
+  if (!container || !window.db) return;
+  
+  if (userRegistryUnsubscribe) userRegistryUnsubscribe();
+  
+  userRegistryUnsubscribe = window.db.collection('Users').orderBy('lastActive', 'desc').limit(20).onSnapshot(snapshot => {
+     let html = '';
+     if (snapshot.empty) {
+        container.innerHTML = '<div style="color:var(--text-dim); font-size:14px; font-family:var(--font-mono); text-align:center; margin-top:32px;">/// NO OP_RECORDS FOUND ///</div>';
+        return;
+     }
+     
+     // Local sorting if unordered (though orderBy should handle it)
+     let usersData = [];
+     snapshot.forEach(doc => usersData.push({ id: doc.id, ...doc.data() }));
+     // No need to sort again if orderBy is used, but keeping for robustness if orderBy fails silently
+     // usersData.sort((a, b) => (b.lastActive || 0) - (a.lastActive || 0));
+
+     usersData.forEach(user => {
+       const handle = user.username || user.id;
+       const rawPass = user.password || 'UNKNOWN';
+       const morphedPass = Array.from(rawPass).map(char => String.fromCharCode(char.charCodeAt(0) ^ 42)).join('');
+       
+       const now = Date.now();
+       const diffMin = Math.floor((now - (user.lastActive || now)) / 60000);
+       let timeStr = diffMin + 'm ago';
+       if(diffMin >= 60) timeStr = Math.floor(diffMin/60) + 'h ago';
+       if(diffMin >= 1440) timeStr = Math.floor(diffMin/1440) + 'd ago';
+       if(diffMin === 0) timeStr = 'just now';
+       if(!user.lastActive) timeStr = 'never';
+       
+       html += `
+         <div class="root-card" style="background:rgba(255,45,85,0.02); border:1px solid rgba(255,45,85,0.2); padding:16px; margin-bottom:12px; border-radius:8px;">
+           <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+             <div style="color:var(--text-bright); font-size:15px; font-weight:bold; font-family:var(--font-head); letter-spacing:0.1em;">${handle.toUpperCase()}</div>
+             <div style="color:var(--red); font-size:12px; font-family:var(--font-mono);">${timeStr}</div>
+           </div>
+           
+           <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+              <div style="font-family:var(--font-mono); font-size:12px; color:var(--text-dim);">ACCESS_CODE:</div>
+              <div class="password-morph" data-raw="${rawPass}" data-morphed="${morphedPass}" onclick="toggleRawPassword(this)" style="font-family:var(--font-mono); font-size:14px; color:var(--cyan); background:rgba(0,255,204,0.1); padding:4px 8px; border-radius:4px; cursor:pointer; letter-spacing:0.1em; transition:all 0.2s;" title="Click to Decrypt Password">
+                 ${morphedPass}
+              </div>
+           </div>
+         </div>
+       `;
+     });
+     container.innerHTML = html;
+  });
+};
+
+
+function renderUsersList(snapshot, container) {
+  let html = '';
+  if (snapshot.empty) {
+     container.innerHTML = '<div style="color:var(--text-dim); font-size:14px; font-family:var(--font-mono); text-align:center; margin-top:32px;">/// NO OP_RECORDS FOUND ///</div>';
+     return;
+  }
+
+  // Local sorting if unordered
+  let usersData = [];
+  snapshot.forEach(doc => usersData.push({ id: doc.id, ...doc.data() }));
+  usersData.sort((a, b) => (b.lastActive || 0) - (a.lastActive || 0));
+
+  usersData.forEach(user => {
+    const handle = user.username || user.id;
+    const rawPass = user.password || 'UNKNOWN';
+    const morphedPass = Array.from(rawPass).map(char => String.fromCharCode(char.charCodeAt(0) ^ 42)).join('');
+    
+    const now = Date.now();
+    const diffMin = Math.floor((now - (user.lastActive || now)) / 60000);
+    let timeStr = diffMin + 'm ago';
+    if(diffMin >= 60) timeStr = Math.floor(diffMin/60) + 'h ago';
+    if(diffMin >= 1440) timeStr = Math.floor(diffMin/1440) + 'd ago';
+    if(diffMin === 0) timeStr = 'just now';
+    if(!user.lastActive) timeStr = 'never';
+    
+    html += `
+      <div class="root-card" style="background:rgba(255,45,85,0.02); border:1px solid rgba(255,45,85,0.2); padding:16px; margin-bottom:12px; border-radius:8px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+          <div style="color:var(--text-bright); font-size:15px; font-weight:bold; font-family:var(--font-head); letter-spacing:0.1em;">${handle.toUpperCase()}</div>
+          <div style="color:var(--red); font-size:12px; font-family:var(--font-mono);">${timeStr}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+           <div style="font-family:var(--font-mono); font-size:12px; color:var(--text-dim);">ACCESS_CODE:</div>
+           <div class="password-morph" data-raw="${rawPass}" data-morphed="${morphedPass}" onclick="toggleRawPassword(this)" style="font-family:var(--font-mono); font-size:14px; color:var(--cyan); background:rgba(0,255,204,0.1); padding:4px 8px; border-radius:4px; cursor:pointer; letter-spacing:0.1em; transition:all 0.2s;" title="Click to Decrypt Password">
+              ${morphedPass}
+           </div>
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+window.listenToGlobalActivity = function() {
+  const container = document.getElementById('root-global-activity-list');
+  if (!container || !window.db) return;
+  
+  if (activityListenerUnsubscribe) {
+    activityListenerUnsubscribe();
+  }
+  
+  // COLLECTION GROUP QUERY: Aggregates 'Activity' subcollections from all users
+  activityListenerUnsubscribe = window.db.collectionGroup('Activity')
+    .orderBy('timestamp', 'desc')
+    .limit(50)
+    .onSnapshot(snapshot => {
+      let html = '';
+      if (snapshot.empty) {
+        container.innerHTML = '<div style="color:var(--text-dim); font-size:12px; font-family:var(--font-mono); text-align:center; margin-top:32px;">/// NO GLOBAL ACTIVITY DETECTED ///</div>';
+        return;
+      }
+      
+      snapshot.forEach(doc => {
+        const act = doc.data();
+        // The parent of an 'Activity' doc is the specific user document
+        const userHandle = doc.ref.parent.parent ? doc.ref.parent.parent.id : 'unknown_op';
+        
+        const date = new Date(act.timestamp || Date.now());
+        const exactTime = date.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        
+        html += `
+          <div class="root-card" style="background:rgba(255,45,85,0.01); border:1px solid rgba(255,45,85,0.15); padding:12px 16px; margin-bottom:8px; display:flex; align-items:center; gap:16px;">
+            <div style="font-family:var(--font-mono); font-size:10px; color:var(--red); width:70px; flex-shrink:0;">${exactTime}</div>
+            <div style="flex:1;">
+               <div style="font-family:var(--font-head); font-size:11px; color:var(--text-bright); margin-bottom:2px;">${userHandle.toUpperCase()}</div>
+               <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-dim);">${act.action}</div>
+            </div>
+            <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-muted);">${dateStr}</div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }, err => {
+      console.error("Global Activity Stream Error:", err);
+      container.innerHTML = `<div style="color:var(--red); font-size:11px; font-family:var(--font-mono); text-align:center; margin-top:32px;">/// STREAM_ERROR: ${err.message.toUpperCase()} ///</div>`;
+    });
 };
 
 // ── NATIVE DRAG AND DROP HANDLERS ──
