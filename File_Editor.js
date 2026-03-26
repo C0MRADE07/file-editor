@@ -387,8 +387,11 @@ function applyUserUI(displayName) {
       el.style.borderColor = 'var(--red)';
       el.style.background = 'rgba(255,45,85,0.07)';
     });
+    const rootNav = document.getElementById('nav-root');
+    if (rootNav) rootNav.classList.remove('hidden');
   }
 }
+
 
 window.handleLogin = function() {
   const userEl = document.getElementById('login-username');
@@ -593,3 +596,524 @@ window.handleLogout = function() {
     window.location.reload();
   }
 };
+
+// ── COMPRESSION ENGINE ──
+let currentCompressFile = null;
+let compressImageElement = new Image();
+
+window.openCompressor = function() {
+  const overlay = document.getElementById('compressor-overlay');
+  overlay.classList.remove('hidden');
+  overlay.querySelector('.tool-box').style.animation = 'fade-up 0.4s ease both';
+};
+
+window.closeCompressor = function() {
+  document.getElementById('compressor-overlay').classList.add('hidden');
+  // Reset
+  document.getElementById('compress-dropzone').classList.remove('hidden');
+  document.getElementById('compress-preview').classList.add('hidden');
+  document.getElementById('compress-btn').disabled = true;
+  document.getElementById('compress-file-input').value = "";
+  currentCompressFile = null;
+};
+
+window.handleCompressSelect = function(e) {
+  const file = e.target.files[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  
+  currentCompressFile = file;
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    compressImageElement.src = event.target.result;
+    compressImageElement.onload = function() {
+      document.getElementById('compress-dropzone').classList.add('hidden');
+      document.getElementById('compress-preview').classList.remove('hidden');
+      document.getElementById('compress-img').src = compressImageElement.src;
+      document.getElementById('compress-btn').disabled = false;
+      
+      const origMB = (file.size / (1024*1024)).toFixed(2);
+      document.getElementById('compress-orig-size').textContent = origMB + " MB";
+      
+      updateCompressPreview();
+    };
+  };
+  reader.readAsDataURL(file);
+};
+
+window.updateCompressPreview = function() {
+  if (!currentCompressFile) return;
+  const quality = parseFloat(document.getElementById('compress-quality').value);
+  document.getElementById('quality-val').textContent = Math.round(quality * 100) + "%";
+  
+  // Estimate new size (very rough heuristic based on quality and format)
+  const format = document.getElementById('compress-format').value;
+  let ratio = quality;
+  if(format === 'image/webp') ratio *= 0.7; // WebP is usually smaller
+  if(format === 'image/png') ratio = 1.0;   // PNG is lossless
+  
+  let newSize = currentCompressFile.size * ratio;
+  if(format === 'image/jpeg' || format === 'image/webp') {
+      newSize = newSize * 0.8; // baseline reduction
+  }
+  
+  const newMB = (newSize / (1024*1024)).toFixed(2);
+  document.getElementById('compress-new-size').textContent = "~" + newMB + " MB";
+};
+
+window.downloadCompressed = function() {
+  if (!currentCompressFile) return;
+  
+  const btn = document.getElementById('compress-btn');
+  const oldText = btn.textContent;
+  btn.textContent = "COMPRESSING...";
+  btn.disabled = true;
+
+  setTimeout(() => {
+    // Perform compression via Canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = compressImageElement.width;
+    canvas.height = compressImageElement.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(compressImageElement, 0, 0);
+
+    const format = document.getElementById('compress-format').value;
+    const quality = parseFloat(document.getElementById('compress-quality').value);
+    
+    // PNG ignores quality parameter in toBlob, so we only use it for jpeg/webp
+    canvas.toBlob((blob) => {
+        if (!blob) {
+            btn.textContent = "ERROR";
+            setTimeout(() => { btn.textContent = oldText; btn.disabled = false; }, 1500);
+            return;
+        }
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        let ext = format.split('/')[1];
+        if (ext === 'jpeg') ext = 'jpg';
+        const newName = currentCompressFile.name.split('.')[0] + "_compressed." + ext;
+        
+        a.download = newName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        // Success feedback
+        btn.textContent = "DONE ✓";
+        btn.style.background = "var(--teal)";
+        setTimeout(() => {
+            btn.textContent = oldText;
+            btn.disabled = false;
+        }, 2000);
+        
+    }, format, quality);
+  }, 100); 
+};
+
+// ── ENCRYPTION ENGINE ──
+let currentEncryptFile = null;
+let currentEncryptBuffer = null;
+let encryptMode = 'encrypt';
+let decryptFailCount = 0;
+
+window.openEncryptor = function() {
+  const overlay = document.getElementById('encryptor-overlay');
+  overlay.classList.remove('hidden');
+  overlay.querySelector('.tool-box').style.animation = 'fade-up 0.4s ease both';
+  resetEncryptUI();
+};
+
+window.closeEncryptor = function() {
+  document.getElementById('encryptor-overlay').classList.add('hidden');
+  resetEncryptUI();
+};
+
+function resetEncryptUI() {
+  document.getElementById('encrypt-dropzone').classList.remove('hidden');
+  document.getElementById('encrypt-preview').classList.add('hidden');
+  document.getElementById('encrypt-btn').disabled = true;
+  document.getElementById('encrypt-file-input').value = "";
+  document.getElementById('encrypt-password').value = "";
+  document.getElementById('admin-help-wrapper').classList.add('hidden');
+  currentEncryptFile = null;
+  currentEncryptBuffer = null;
+  decryptFailCount = 0;
+  updateEncryptMode();
+}
+
+window.updateEncryptMode = function() {
+  const modeRadios = document.getElementsByName('enc-mode');
+  modeRadios.forEach(r => { if(r.checked) encryptMode = r.value; });
+  
+  const btn = document.getElementById('encrypt-btn');
+  const title = document.getElementById('encrypt-drop-title');
+  const passLabel = document.getElementById('encrypt-pass-label');
+  
+  if(encryptMode === 'encrypt') {
+    btn.textContent = "LOCK FILE";
+    btn.style.background = "var(--red)";
+    title.textContent = "DROP ANY FILE TO LOCK";
+    document.getElementById('encrypt-drop-icon').style.color = "var(--red)";
+    passLabel.textContent = "CREATE ACCESS PASSWORD";
+  } else {
+    btn.textContent = "UNLOCK FILE";
+    btn.style.background = "var(--cyan)";
+    title.textContent = "DROP .ENC FILE TO UNLOCK";
+    document.getElementById('encrypt-drop-icon').style.color = "var(--cyan)";
+    passLabel.textContent = "ENTER ACCESS PASSWORD";
+  }
+  checkEncryptReady();
+};
+
+window.handleEncryptSelect = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  // If in decrypt mode, enforce .enc (though users can drag anything so we will just try to decrypt whatever they drop)
+  currentEncryptFile = file;
+  
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    currentEncryptBuffer = event.target.result;
+    
+    document.getElementById('encrypt-dropzone').classList.add('hidden');
+    document.getElementById('encrypt-preview').classList.remove('hidden');
+    
+    // UI Metadata
+    document.getElementById('encrypt-preview-name').textContent = file.name;
+    const mbPath = (file.size / (1024*1024)).toFixed(2);
+    document.getElementById('encrypt-preview-size').textContent = mbPath + " MB";
+    
+    const extMatch = file.name.match(/\.([^\.]+)$/);
+    const ext = extMatch ? extMatch[1].toUpperCase() : "BIN";
+    const extEl = document.getElementById('encrypt-preview-ext');
+    extEl.textContent = ext;
+    extEl.className = "file-ext";
+    
+    if (ext === 'ENC') { extEl.classList.add('ext-red'); extEl.style.borderColor = 'var(--red)'; }
+    else if (['PDF'].includes(ext)) { extEl.classList.add('ext-pdf'); }
+    else if (['JS','JSON'].includes(ext)) { extEl.classList.add('ext-js'); }
+    else if (['MD','TXT'].includes(ext)) { extEl.classList.add('ext-md'); }
+    else if (['PNG','JPG','WEBP'].includes(ext)) { extEl.classList.add('ext-img'); }
+    
+    // Auto-switch mode based on extension if dropped
+    if(ext === 'ENC' && encryptMode === 'encrypt') {
+       document.getElementsByName('enc-mode')[1].checked = true;
+       updateEncryptMode();
+    } else if (ext !== 'ENC' && encryptMode === 'decrypt') {
+       document.getElementsByName('enc-mode')[0].checked = true;
+       updateEncryptMode();
+    }
+    
+    checkEncryptReady();
+  };
+  reader.readAsArrayBuffer(file);
+};
+
+window.checkEncryptReady = function() {
+  const pwd = document.getElementById('encrypt-password').value;
+  const btn = document.getElementById('encrypt-btn');
+  if (currentEncryptBuffer && pwd.length >= 4) {
+    btn.disabled = false;
+  } else {
+    btn.disabled = true;
+  }
+};
+
+window.toggleEncryptPassword = function() {
+  const input = document.getElementById('encrypt-password');
+  const toggle = document.getElementById('encrypt-pass-toggle');
+  if (input.type === 'password') {
+    input.type = 'text';
+    toggle.style.color = 'var(--cyan)';
+  } else {
+    input.type = 'password';
+    toggle.style.color = 'var(--text-dim)';
+  }
+};
+
+window.togglePasswordVisibility = function(inputId, iconEl) {
+  const input = document.getElementById(inputId);
+  if (input.type === 'password') {
+    input.type = 'text';
+    iconEl.style.color = 'var(--cyan)';
+  } else {
+    input.type = 'password';
+    iconEl.style.color = 'var(--text-dim)';
+  }
+};
+
+window.processEncryption = async function() {
+  const pwd = document.getElementById('encrypt-password').value;
+  const btn = document.getElementById('encrypt-btn');
+  const oldText = btn.textContent;
+  
+  btn.disabled = true;
+  btn.textContent = "PROCESSING...";
+  
+  document.getElementById('admin-help-wrapper').classList.add('hidden'); // Hide help on submit
+  
+  try {
+    if (encryptMode === 'encrypt') {
+      await runEncrypt(pwd);
+      btn.textContent = "SYSTEM LOCKED ✓";
+      btn.style.background = "var(--green)";
+    } else {
+      await runDecrypt(pwd);
+      btn.textContent = "ACCESS GRANTED ✓";
+      btn.style.background = "var(--green)";
+      decryptFailCount = 0; // reset on success
+    }
+  } catch (err) {
+    console.error(err);
+    if (encryptMode === 'decrypt') {
+      decryptFailCount++;
+      btn.textContent = "ACCESS DENIED";
+      btn.style.background = "var(--red)";
+      
+      // Admin Help trigger
+      if(decryptFailCount >= 2) {
+        document.getElementById('admin-help-wrapper').classList.remove('hidden');
+      }
+    } else {
+      btn.textContent = "ENCRYPTION FAILED";
+      btn.style.background = "var(--red)";
+    }
+  }
+  
+  setTimeout(() => {
+    btn.textContent = oldText;
+    btn.style.background = (encryptMode === 'encrypt') ? 'var(--red)' : 'var(--cyan)';
+    btn.disabled = false;
+  }, 2500);
+};
+
+window.requestAdminHelp = function() {
+  const btn = document.querySelector('#admin-help-wrapper button');
+  const oldText = btn.textContent;
+  btn.textContent = "TRANSMITTING TO ROOT...";
+  btn.disabled = true;
+  
+  // Here we would eventually save a request to Firestore. We simulate for now.
+  setTimeout(() => {
+    btn.textContent = "REQUEST LOGGED. AWAITING SYS_ADMIN";
+    btn.style.color = "var(--green)";
+    btn.style.borderColor = "var(--green)";
+  }, 1500);
+};
+
+// --- WEB CRYPTO UTILS ---
+function getDerivationSettings() {
+  return { name: "PBKDF2", hash: "SHA-256", iterations: 100000 };
+}
+
+async function deriveKey(passwordStr, salt) {
+  const enc = new TextEncoder();
+  const keyMaterial = await window.crypto.subtle.importKey(
+    "raw", enc.encode(passwordStr), { name: "PBKDF2" }, false, ["deriveKey"]
+  );
+  const derivedKey = await window.crypto.subtle.deriveKey(
+    { ...getDerivationSettings(), salt: salt },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+  return derivedKey;
+}
+
+async function runEncrypt(pwd) {
+  const salt = window.crypto.getRandomValues(new Uint8Array(16));
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  
+  const key = await deriveKey(pwd, salt);
+  
+  // Original filename logic: we embed the filename length and filename bytes so decryptor can restore it.
+  const enc = new TextEncoder();
+  const nameBytes = enc.encode(currentEncryptFile.name);
+  const nameLen = nameBytes.length; // max 255 ideally
+  
+  // Pack metadata into a master buffer to prep for encryption
+  // Structure: [nameLen (1 byte)] + [nameBytes] + [fileBuffer]
+  // Note: For massive files, doing this in-memory is heavy, but perfectly fine for a client-side prototype.
+  const metaBuff = new Uint8Array(1 + nameLen + currentEncryptBuffer.byteLength);
+  metaBuff[0] = nameLen;
+  metaBuff.set(nameBytes, 1);
+  metaBuff.set(new Uint8Array(currentEncryptBuffer), 1 + nameLen);
+  
+  const encryptedContent = await window.crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: iv }, key, metaBuff.buffer
+  );
+  
+  // Package final file: [Salt (16)] + [IV (12)] + [Encrypted Blob]
+  const finalFile = new Uint8Array(16 + 12 + encryptedContent.byteLength);
+  finalFile.set(salt, 0);
+  finalFile.set(iv, 16);
+  finalFile.set(new Uint8Array(encryptedContent), 28);
+  
+  triggerDownload(new Blob([finalFile]), currentEncryptFile.name + ".enc");
+}
+
+async function runDecrypt(pwd) {
+  const fullArray = new Uint8Array(currentEncryptBuffer);
+  if (fullArray.length < 28) throw new Error("File too small");
+  
+  const salt = fullArray.slice(0, 16);
+  const iv = fullArray.slice(16, 28);
+  const encryptedData = fullArray.slice(28);
+  
+  const key = await deriveKey(pwd, salt);
+  
+  // Throws OperationError if password wrong
+  const decryptedContent = await window.crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: iv }, key, encryptedData.buffer
+  );
+  
+  const decView = new Uint8Array(decryptedContent);
+  const nameLen = decView[0];
+  const nameBytes = decView.slice(1, 1 + nameLen);
+  
+  const dec = new TextDecoder();
+  const originalName = dec.decode(nameBytes);
+  
+  const originalFileData = decView.slice(1 + nameLen);
+  
+  triggerDownload(new Blob([originalFileData]), originalName);
+}
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── ROOT DASHBOARD ──
+window.openRootPanel = function() {
+  document.getElementById('app-root-panel').style.display = 'block';
+  renderMockRecoveryQueue();
+};
+window.closeRootPanel = function() {
+  document.getElementById('app-root-panel').style.display = 'none';
+};
+
+const mockRecoveryRequests = [
+  { id: 'ENC-7A99', user: 'Trinity', file: 'matrix_source.enc', rawPass: 'neo123', time: '12m ago' },
+  { id: 'ENC-B411', user: 'Morpheus', file: 'ship_codes.enc', rawPass: 'zion_forever', time: '1h ago' },
+  { id: 'ENC-X001', user: 'Cypher', file: 'blueprint.enc', rawPass: 'sellout', time: '2d ago' }
+];
+
+window.renderMockRecoveryQueue = function() {
+  const container = document.getElementById('root-recovery-queue');
+  if (!container) return;
+  
+  let html = '';
+  mockRecoveryRequests.forEach(req => {
+    // Generate a morphed password string based on real length
+    const morphedPass = Array.from(req.rawPass).map(char => String.fromCharCode(char.charCodeAt(0) ^ 42)).join('');
+    
+    html += `
+      <div class="root-card" style="background:rgba(255,45,85,0.02); border:1px solid rgba(255,45,85,0.2); padding:16px; margin-bottom:12px; border-radius:8px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+          <div style="color:var(--text-bright); font-size:14px; font-weight:bold;">${req.user} <span style="color:var(--text-dim); font-size:11px; font-weight:normal; margin-left:6px;">/ ${req.file}</span></div>
+          <div style="color:var(--red); font-size:10px; font-family:var(--font-mono);">${req.time}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+           <div style="font-family:var(--font-mono); font-size:10px; color:var(--text-dim);">FILE_ID: <span style="color:var(--red);">${req.id}</span></div>
+           <div style="flex:1;"></div>
+           <div class="password-morph" data-raw="${req.rawPass}" data-morphed="${morphedPass}" onclick="toggleRawPassword(this)" style="font-family:var(--font-mono); font-size:12px; color:var(--cyan); background:rgba(0,255,204,0.1); padding:4px 8px; border-radius:4px; cursor:pointer; letter-spacing:0.1em; transition:all 0.2s;" title="Click to Decrypt Password">
+              ${morphedPass}
+           </div>
+           <button class="btn-primary" style="padding:6px 12px; font-size:10px; background:transparent; border:1px solid var(--red); color:var(--red);" onclick="approveRecovery(this)">APPROVE</button>
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+};
+
+window.toggleRawPassword = function(el) {
+  const raw = el.dataset.raw;
+  const morphed = el.dataset.morphed;
+  if(el.textContent.trim() === morphed) {
+    el.textContent = raw;
+    el.style.color = '#fff';
+    el.style.background = 'var(--red)';
+    el.style.letterSpacing = '0';
+  } else {
+    el.textContent = morphed;
+    el.style.color = 'var(--cyan)';
+    el.style.background = 'rgba(0,255,204,0.1)';
+    el.style.letterSpacing = '0.1em';
+  }
+};
+
+window.approveRecovery = function(btn) {
+  btn.innerHTML = '✓ APPROVED'; 
+  btn.style.color = 'var(--green)'; 
+  btn.style.borderColor = 'var(--green)';
+  btn.disabled = true;
+};
+
+// ── NATIVE DRAG AND DROP HANDLERS ──
+function setupDragAndDrop(zone, inputId) {
+  if (!zone) return;
+
+  // Prevent default behaviors for all drag events
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    zone.addEventListener(eventName, preventDefaults, false);
+  });
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  // Highlight on drag over
+  ['dragenter', 'dragover'].forEach(eventName => {
+    zone.addEventListener(eventName, () => zone.classList.add('drag-active'), false);
+  });
+
+  // Unhighlight on drag leave or drop
+  ['dragleave', 'drop'].forEach(eventName => {
+    zone.addEventListener(eventName, () => zone.classList.remove('drag-active'), false);
+  });
+
+  // Handle dropped files naturally
+  zone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files.length) {
+      const input = document.getElementById(inputId);
+      
+      // Assign the dropped file(s) to the hidden input
+      input.files = files;
+      
+      // Dispatch a synthetic change event so our existing systems trigger
+      const event = new Event('change', { bubbles: true });
+      input.dispatchEvent(event);
+    }
+  }, false);
+}
+
+// Initialize D&D for all zones when DOM loads
+document.addEventListener('DOMContentLoaded', () => {
+  // 1. Home Dashboard Upload Zone
+  const mainZone = document.querySelector('.upload-zone');
+  if (mainZone) setupDragAndDrop(mainZone, 'file-upload-input');
+  
+  // 2. Compressor Tool Dropzone
+  const compressZone = document.getElementById('compress-dropzone');
+  if (compressZone) setupDragAndDrop(compressZone, 'compress-file-input');
+  
+  // 3. Encryptor Tool Dropzone
+  const encryptZone = document.getElementById('encrypt-dropzone');
+  if (encryptZone) setupDragAndDrop(encryptZone, 'encrypt-file-input');
+});

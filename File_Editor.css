@@ -1141,3 +1141,69 @@ body.light-mode .login-input {
 .login-input:focus {
   border-color: var(--cyan); box-shadow: 0 0 16px rgba(0,200,255,0.15);
 }
+
+/* --- TOOL OVERLAYS --- */
+.tool-overlay {
+  position: fixed; inset: 0;
+  background: rgba(3,5,8,0.95);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 99999;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+body.light-mode .tool-overlay { background: rgba(235, 241, 245, 0.95); }
+.tool-overlay.hidden { opacity: 0; pointer-events: none; transform: scale(1.02); }
+
+.tool-box {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; width: 90%; max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0,255,204,0.08), inset 0 0 30px rgba(0,255,204,0.03);
+  position: relative; overflow: hidden;
+}
+body.light-mode .tool-box { background: #ffffff; border-color: rgba(0,153,128,0.3); }
+
+.tool-header {
+  padding: 20px; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(0,255,204,0.05);
+}
+.tool-title { font-family: var(--font-head); font-size: 14px; font-weight: 700; letter-spacing: 0.2em; color: var(--teal); }
+.tool-close { font-size: 18px; color: var(--text-dim); cursor: pointer; transition: color 0.2s; }
+.tool-close:hover { color: var(--red); }
+.tool-body { padding: 24px; }
+
+.compress-dropzone {
+  border: 1.5px dashed rgba(0,255,204,0.3);
+  border-radius: 8px; padding: 32px 20px; text-align: center;
+  background: rgba(0,255,204,0.03); cursor: pointer; transition: all 0.2s;
+  margin-bottom: 24px;
+}
+.compress-dropzone:hover { border-color: var(--teal); background: rgba(0,255,204,0.08); }
+
+.styled-slider {
+  -webkit-appearance: none; appearance: none; height: 4px; background: var(--panel2);
+  border-radius: 2px; outline: none; border: 1px solid var(--border);
+}
+.styled-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 16px; height: 16px;
+  border-radius: 50%; background: var(--teal); cursor: pointer;
+  box-shadow: 0 0 10px rgba(0,255,204,0.4);
+}
+
+/* --- DRAG & DROP FEEDBACK --- */
+.drag-active {
+  border-color: var(--cyan) !important;
+  background: rgba(0,200,255,0.15) !important;
+  transform: scale(1.02);
+  box-shadow: 0 0 30px rgba(0,200,255,0.2) !important;
+}
+.compress-dropzone.drag-active {
+  border-color: var(--teal) !important;
+  background: rgba(0,255,204,0.15) !important;
+  box-shadow: 0 0 30px rgba(0,255,204,0.2) !important;
+}
+#encrypt-dropzone.drag-active {
+  border-color: var(--red) !important;
+  background: rgba(255,45,85,0.15) !important;
+  box-shadow: 0 0 30px rgba(255,45,85,0.2) !important;
+}

@@ -26,9 +26,12 @@
           <label style="display:block; font-family:var(--font-mono); font-size:9px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">OPERATOR HANDLE</label>
           <input type="text" id="login-username" class="login-input" placeholder="e.g. Neo" autocomplete="off" onkeydown="if(event.key === 'Enter') document.getElementById('login-password').focus()">
         </div>
-        <div class="login-input-group" style="margin-bottom:20px;">
+        <div class="login-input-group" style="position:relative; margin-bottom:20px;">
           <label style="display:block; font-family:var(--font-mono); font-size:9px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">ACCESS CODES</label>
-          <input type="password" id="login-password" class="login-input" placeholder="••••••••" onkeydown="if(event.key === 'Enter') handleLogin()">
+          <input type="password" id="login-password" class="login-input" placeholder="ENTER SECRET" style="padding-right:45px;" onkeydown="if(event.key === 'Enter') handleLogin()">
+          <div onclick="togglePasswordVisibility('login-password', this)" style="position:absolute; right:12px; bottom:12px; cursor:pointer; color:var(--text-dim); transition:color 0.2s;">
+            <svg class="icon-svg" style="width:18px;height:18px"><use href="#icon-inspect"></use></svg>
+          </div>
         </div>
         
         <div id="login-error" class="auth-error"></div>
@@ -51,13 +54,19 @@
           <label style="display:block; font-family:var(--font-mono); font-size:9px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">OPERATOR HANDLE</label>
           <input type="text" id="signup-username" class="login-input" placeholder="e.g. Neo" autocomplete="off" onkeydown="if(event.key === 'Enter') document.getElementById('signup-password').focus()">
         </div>
-        <div class="login-input-group" style="margin-bottom:20px;">
+        <div class="login-input-group" style="position:relative; margin-bottom:20px;">
           <label style="display:block; font-family:var(--font-mono); font-size:9px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">ACCESS CODE</label>
-          <input type="password" id="signup-password" class="login-input" placeholder="••••••••" onkeydown="if(event.key === 'Enter') document.getElementById('signup-confirm').focus()">
+          <input type="password" id="signup-password" class="login-input" placeholder="ENTER SECRET" style="padding-right:45px;" onkeydown="if(event.key === 'Enter') document.getElementById('signup-confirm').focus()">
+          <div onclick="togglePasswordVisibility('signup-password', this)" style="position:absolute; right:12px; bottom:12px; cursor:pointer; color:var(--text-dim); transition:color 0.2s;">
+            <svg class="icon-svg" style="width:18px;height:18px"><use href="#icon-inspect"></use></svg>
+          </div>
         </div>
-        <div class="login-input-group" style="margin-bottom:20px;">
+        <div class="login-input-group" style="position:relative; margin-bottom:20px;">
           <label style="display:block; font-family:var(--font-mono); font-size:9px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">CONFIRM ACCESS CODE</label>
-          <input type="password" id="signup-confirm" class="login-input" placeholder="••••••••" onkeydown="if(event.key === 'Enter') handleSignUp()">
+          <input type="password" id="signup-confirm" class="login-input" placeholder="VERIFY SECRET" style="padding-right:45px;" onkeydown="if(event.key === 'Enter') handleSignUp()">
+          <div onclick="togglePasswordVisibility('signup-confirm', this)" style="position:absolute; right:12px; bottom:12px; cursor:pointer; color:var(--text-dim); transition:color 0.2s;">
+            <svg class="icon-svg" style="width:18px;height:18px"><use href="#icon-inspect"></use></svg>
+          </div>
         </div>
 
         <div id="signup-error" class="auth-error"></div>
@@ -71,6 +80,99 @@
     </div>
   </div>
 
+  <!-- COMPRESSOR OVERLAY -->
+  <div class="tool-overlay hidden" id="compressor-overlay">
+    <div class="tool-box">
+      <div class="tool-header">
+        <div class="tool-title">COMPRESSION ENGINE</div>
+        <div class="tool-close" onclick="closeCompressor()">✕</div>
+      </div>
+      <div class="tool-body">
+        <div class="compress-dropzone" id="compress-dropzone" onclick="document.getElementById('compress-file-input').click()">
+          <svg class="icon-svg" style="width:40px;height:40px;color:var(--teal);margin-bottom:12px;"><use href="#icon-scissors"></use></svg>
+          <div style="font-size:14px;color:var(--text-bright)">DROP IMAGE HERE</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:4px">JPG, PNG, WEBP</div>
+        </div>
+        <input type="file" id="compress-file-input" style="display:none" accept="image/*" onchange="handleCompressSelect(event)">
+        
+        <div id="compress-preview" class="hidden" style="text-align:center;margin-bottom:20px;">
+          <img id="compress-img" style="max-width:100%;max-height:150px;border-radius:8px;border:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:12px;font-family:var(--font-mono)">
+            <div>ORIGINAL: <span id="compress-orig-size" style="color:var(--cyan)">--</span></div>
+            <div>NEW ESTIMATE: <span id="compress-new-size" style="color:var(--teal)">--</span></div>
+          </div>
+        </div>
+
+        <div class="compress-controls">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:11px;font-family:var(--font-mono)">
+            <span>QUALITY</span>
+            <span id="quality-val">80%</span>
+          </div>
+          <input type="range" id="compress-quality" class="styled-slider" min="0.1" max="1.0" step="0.1" value="0.8" style="width:100%;margin-bottom:20px" oninput="updateCompressPreview()">
+          
+          <div style="margin-bottom:8px;font-size:11px;font-family:var(--font-mono)">FORMAT</div>
+          <select id="compress-format" class="login-input" style="margin-bottom:24px;padding:12px;" onchange="updateCompressPreview()">
+            <option value="image/jpeg">JPEG (Smaller)</option>
+            <option value="image/webp" selected>WEBP (Modern)</option>
+            <option value="image/png">PNG (Lossless)</option>
+          </select>
+        </div>
+
+        <button class="btn-primary" id="compress-btn" style="width:100%;padding:16px;background:var(--teal);color:#0a0e17" onclick="downloadCompressed()" disabled>DOWNLOAD COMPRESSED</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ENCRYPTOR OVERLAY -->
+  <div class="tool-overlay hidden" id="encryptor-overlay">
+    <div class="tool-box" style="border-color: rgba(255,45,85,0.3); box-shadow: 0 20px 60px rgba(255,45,85,0.08), inset 0 0 30px rgba(255,45,85,0.03);">
+      <div class="tool-header" style="background: rgba(255,45,85,0.05);">
+        <div class="tool-title" style="color: var(--red);">ENCRYPTION ENGINE</div>
+        <div class="tool-close" onclick="closeEncryptor()">✕</div>
+      </div>
+      <div class="tool-body">
+        
+        <div style="display:flex; justify-content:center; gap:20px; margin-bottom:24px;">
+          <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+            <input type="radio" name="enc-mode" value="encrypt" checked onchange="updateEncryptMode()">
+            <span style="font-family:var(--font-mono); font-size:12px; color:var(--red);">ENCRYPT</span>
+          </label>
+          <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+            <input type="radio" name="enc-mode" value="decrypt" onchange="updateEncryptMode()">
+            <span style="font-family:var(--font-mono); font-size:12px; color:var(--cyan);">DECRYPT</span>
+          </label>
+        </div>
+
+        <div class="compress-dropzone" id="encrypt-dropzone" onclick="document.getElementById('encrypt-file-input').click()" style="border-color: rgba(255,45,85,0.3); background: rgba(255,45,85,0.03);">
+          <svg class="icon-svg" id="encrypt-drop-icon" style="width:40px;height:40px;color:var(--red);margin-bottom:12px;"><use href="#icon-lock"></use></svg>
+          <div style="font-size:14px;color:var(--text-bright)" id="encrypt-drop-title">DROP FILE TO LOCK</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:4px" id="encrypt-drop-sub">ANY FILE FORMAT</div>
+        </div>
+        <input type="file" id="encrypt-file-input" style="display:none" onchange="handleEncryptSelect(event)">
+        
+        <div id="encrypt-preview" class="hidden" style="text-align:center;margin-bottom:20px;">
+          <div class="file-ext ext-pdf" style="margin:0 auto 10px; width:48px; height:54px; font-size:12px; border-color:var(--red); color:var(--text);" id="encrypt-preview-ext">FILE</div>
+          <div class="file-name" id="encrypt-preview-name" style="font-size:14px; margin-bottom:4px; color:var(--text-bright);">filename.ext</div>
+          <div class="file-meta" style="justify-content:center;"><span id="encrypt-preview-size" style="color:var(--cyan);">--</span></div>
+        </div>
+
+        <div class="login-input-group" style="position:relative; margin-bottom:24px;">
+          <label style="display:block; font-family:var(--font-mono); font-size:9px; color:var(--text-dim); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;" id="encrypt-pass-label">ACCESS PASSWORD</label>
+          <input type="password" id="encrypt-password" class="login-input" placeholder="ENTER SECRET" style="text-align:center; letter-spacing:0.3em; font-size:16px;" oninput="checkEncryptReady()">
+          <div onclick="toggleEncryptPassword()" id="encrypt-pass-toggle" style="position:absolute; right:12px; bottom:14px; cursor:pointer; color:var(--text-dim); transition:color 0.2s;">
+            <svg class="icon-svg" style="width:20px;height:20px"><use href="#icon-inspect"></use></svg>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="encrypt-btn" style="width:100%;padding:16px;background:var(--red);color:#0a0e17" onclick="processEncryption()" disabled>LOCK FILE</button>
+        
+        <div id="admin-help-wrapper" class="hidden" style="text-align:center; margin-top:16px; animation:fade-up 0.4s ease both;">
+          <button class="btn-secondary" style="color:var(--gold); border-color:var(--gold); padding:8px 14px; font-size:10px; width:100%;" onclick="requestAdminHelp()">[ CONTACT SYS_ADMIN FOR CLEARANCE ]</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
   <symbol id="icon-home" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" stroke-width="2" fill="none"></polyline></symbol>
   <symbol id="icon-file" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></polyline></symbol>
@@ -80,7 +182,7 @@
   <symbol id="icon-zap" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></polygon></symbol>
   <symbol id="icon-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></symbol>
   <symbol id="icon-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></circle><circle cx="6" cy="18" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></circle><line x1="20" y1="4" x2="8.12" y2="15.88" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line><line x1="14.47" y1="14.48" x2="20" y2="20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line><line x1="8.12" y1="8.12" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line></symbol>
-  <symbol id="icon-repair" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94-7.94l-3.23 3.23z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></symbol>
+  <symbol id="icon-repair" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.77 3.77z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></symbol>
   <symbol id="icon-merge" viewBox="0 0 24 24"><path d="M17 10l4-4-4-4v3H9c-2.2 0-4 1.8-4 4v5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><path d="M17 21v-3H9c-2.2 0-4-1.8-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></symbol>
   <symbol id="icon-split" viewBox="0 0 24 24"><path d="M16 11V3h-8v8l-4 4v6h16v-6l-4-4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></symbol>
   <symbol id="icon-rotate" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><path d="M3 3v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></symbol>
@@ -164,13 +266,17 @@
         <div class="drawer-nav-icon"><svg class="icon-svg"><use href="#icon-zap"></use></svg></div>
         <span class="drawer-nav-label">Convert</span>
       </div>
-      <div class="drawer-nav-item">
+      <div class="drawer-nav-item" onclick="openEncryptor(); closeDrawer();">
         <div class="drawer-nav-icon"><svg class="icon-svg"><use href="#icon-lock"></use></svg></div>
         <span class="drawer-nav-label">Encrypt</span>
       </div>
-      <div class="drawer-nav-item">
+      <div class="drawer-nav-item" onclick="openCompressor(); closeDrawer();">
         <div class="drawer-nav-icon"><svg class="icon-svg"><use href="#icon-scissors"></use></svg></div>
         <span class="drawer-nav-label">Compress</span>
+      </div>
+      <div class="drawer-nav-item hidden" id="nav-root" onclick="openRootPanel(); closeDrawer();">
+        <div class="drawer-nav-icon" style="color:var(--red)"><svg class="icon-svg"><use href="#icon-warn"></use></svg></div>
+        <span class="drawer-nav-label" style="color:var(--red); letter-spacing:0.1em; font-family:var(--font-mono); font-weight:bold;">ROOT_ACCESS</span>
       </div>
     </div>
     <div class="drawer-footer">
@@ -238,13 +344,13 @@
       <div class="feature-desc">Switch between 240+ formats instantly</div>
       <span class="corner">01</span>
     </div>
-    <div class="feature-card accent-teal">
+    <div class="feature-card accent-teal" style="cursor:pointer" onclick="openCompressor()">
       <span class="feature-icon" style="color:var(--teal)"><svg class="icon-svg"><use href="#icon-scissors"></use></svg></span>
       <span class="feature-name">Compress</span>
       <div class="feature-desc">Reduce file size without quality loss</div>
       <span class="corner">02</span>
     </div>
-    <div class="feature-card accent-red">
+    <div class="feature-card accent-red" style="cursor:pointer" onclick="openEncryptor()">
       <span class="feature-icon" style="color:var(--red)"><svg class="icon-svg"><use href="#icon-lock"></use></svg></span>
       <span class="feature-name">Encrypt</span>
       <div class="feature-desc">AES-256 protection for your files</div>
@@ -330,6 +436,59 @@
     </div>
   </div>
 
+</div>
+
+<!-- ROOT DASHBOARD PANEL -->
+<div id="app-root-panel" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:998; overflow-y:auto; padding-bottom:100px;">
+  
+  <div class="status-bar" style="border-bottom: 1px solid rgba(255,45,85,0.2); background:rgba(255,45,85,0.05);">
+    <span class="time" style="color:var(--red)">ROOT</span>
+    <div class="status-icons" style="color:var(--red)">
+      <div class="status-dot" style="background:var(--red); box-shadow:0 0 10px var(--red)"></div>
+    </div>
+  </div>
+
+  <nav class="navbar" style="border-bottom:none">
+    <div class="logo" style="color:var(--red)">
+      <div class="logo-icon" style="color:var(--red); border-color:var(--red);">⬡</div>
+      SYS<span style="color:var(--text-bright)">ADMIN</span>
+    </div>
+    <div style="font-size:24px; color:var(--red); cursor:pointer;" onclick="closeRootPanel()">✕</div>
+  </nav>
+
+  <div style="padding: 24px;">
+    
+    <div class="root-header" style="margin-bottom:32px;">
+      <h2 style="font-family:var(--font-head); font-size:24px; color:var(--red); letter-spacing:0.2em; margin:0 0 4px 0;">SYSTEM TELEMETRY</h2>
+      <p style="font-family:var(--font-mono); font-size:11px; color:var(--text-dim); margin:0;">ACTIVE ENCRYPTION NODES // NODE-A14</p>
+    </div>
+
+    <!-- ROOT METRICS -->
+    <div class="metrics" style="margin-bottom:32px;">
+      <div class="metric" style="background:rgba(255,45,85,0.05); border-color:rgba(255,45,85,0.3);">
+        <div class="metric-val" style="color:var(--red);">99.9%</div>
+        <div class="metric-label">UPTIME</div>
+      </div>
+      <div class="metric" style="background:rgba(255,45,85,0.05); border-color:rgba(255,45,85,0.3);">
+        <div class="metric-val" style="color:var(--red);">24</div>
+        <div class="metric-label">LOCKED FILES</div>
+      </div>
+      <div class="metric" style="background:rgba(255,45,85,0.05); border-color:rgba(255,45,85,0.3);">
+        <div class="metric-val" style="color:var(--red);">1.4G</div>
+        <div class="metric-label">ENCRYPT VOL</div>
+      </div>
+    </div>
+
+    <div class="section-header" style="border-bottom:1px solid rgba(255,45,85,0.3); padding-bottom:8px;">
+      <span class="section-title" style="color:var(--red); letter-spacing:0.1em;">PENDING CLEARANCE REQUESTS</span>
+    </div>
+
+    <!-- PASSWORD RECOVERY QUEUE -->
+    <div id="root-recovery-queue" style="margin-top:16px;">
+      <!-- Mock Data generated by JS -->
+    </div>
+
+  </div>
 </div>
 
 <nav class="bottom-nav">
