@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>FileEditor — Redefine Your Files</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="File_Editor.css">
+</head>
+<body>
+
+  <!-- LOGIN OVERLAY -->
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-box">
+      <div class="logo" style="justify-content:center; margin-bottom:32px; font-size:24px;">
+        <div class="logo-icon" style="width:40px;height:40px;font-size:20px;">⬡</div>
+        FILE<span style="color:var(--teal)">ED</span>
+      </div>
+
+      <!-- LOGIN PANEL -->
+      <div id="login-panel">
+        <div class="login-title">SYSTEM ACCESS</div>
+        <p class="login-sub">Identify yourself to access the terminal.</p>
+        
+        <div class="login-input-group" style="margin-bottom:20px;">
+          <label style="display:block; font-family:var(--font-mono); font-size:9px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">OPERATOR HANDLE</label>
+          <input type="text" id="login-username" class="login-input" placeholder="e.g. Neo" autocomplete="off" onkeydown="if(event.key === 'Enter') document.getElementById('login-password').focus()">
+        </div>
+        <div class="login-input-group" style="margin-bottom:20px;">
+          <label style="display:block; font-family:var(--font-mono); font-size:9px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">ACCESS CODES</label>
+          <input type="password" id="login-password" class="login-input" placeholder="••••••••" onkeydown="if(event.key === 'Enter') handleLogin()">
+        </div>
+        
+        <div id="login-error" class="auth-error"></div>
+        
+        <button class="btn-primary" id="login-btn" style="width:100%; margin-top:24px; padding:18px;" onclick="handleLogin()">INITIALIZE</button>
+        <div style="text-align:center; margin-top:20px;">
+          <span onclick="guestLogin()" style="font-family:var(--font-mono); font-size:11px; color:var(--text-dim); cursor:pointer; letter-spacing:0.06em; transition:color 0.2s;" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='var(--text-dim)'">CONTINUE AS GUEST →</span>
+        </div>
+        <div style="text-align:center; margin-top:16px;">
+          <span class="auth-toggle" onclick="toggleAuthView('signup')">NEW OPERATOR? → REGISTER</span>
+        </div>
+      </div>
+
+      <!-- SIGNUP PANEL -->
+      <div id="signup-panel" style="display:none;">
+        <div class="login-title">NEW OPERATOR</div>
+        <p class="login-sub">Register your credentials for system access.</p>
+        
+        <div class="login-input-group" style="margin-bottom:20px;">
+          <label style="display:block; font-family:var(--font-mono); font-size:9px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">OPERATOR HANDLE</label>
+          <input type="text" id="signup-username" class="login-input" placeholder="e.g. Neo" autocomplete="off" onkeydown="if(event.key === 'Enter') document.getElementById('signup-password').focus()">
+        </div>
+        <div class="login-input-group" style="margin-bottom:20px;">
+          <label style="display:block; font-family:var(--font-mono); font-size:9px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">ACCESS CODE</label>
+          <input type="password" id="signup-password" class="login-input" placeholder="••••••••" onkeydown="if(event.key === 'Enter') document.getElementById('signup-confirm').focus()">
+        </div>
+        <div class="login-input-group" style="margin-bottom:20px;">
+          <label style="display:block; font-family:var(--font-mono); font-size:9px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">CONFIRM ACCESS CODE</label>
+          <input type="password" id="signup-confirm" class="login-input" placeholder="••••••••" onkeydown="if(event.key === 'Enter') handleSignUp()">
+        </div>
+
+        <div id="signup-error" class="auth-error"></div>
+        
+        <button class="btn-primary" id="signup-btn" style="width:100%; margin-top:24px; padding:18px;" onclick="handleSignUp()">REGISTER</button>
+        <div style="text-align:center; margin-top:16px;">
+          <span class="auth-toggle" onclick="toggleAuthView('login')">RETURNING? → LOGIN</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="icon-home" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" stroke-width="2" fill="none"></polyline></symbol>
+  <symbol id="icon-file" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></polyline></symbol>
+  <symbol id="icon-upload" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></polyline><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></line></symbol>
+  <symbol id="icon-bell" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0" fill="currentColor"></path></symbol>
+  <symbol id="icon-profile" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></circle><path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path></symbol>
+  <symbol id="icon-zap" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></polygon></symbol>
+  <symbol id="icon-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></symbol>
+  <symbol id="icon-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></circle><circle cx="6" cy="18" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></circle><line x1="20" y1="4" x2="8.12" y2="15.88" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line><line x1="14.47" y1="14.48" x2="20" y2="20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line><line x1="8.12" y1="8.12" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line></symbol>
+  <symbol id="icon-repair" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94-7.94l-3.23 3.23z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></symbol>
+  <symbol id="icon-merge" viewBox="0 0 24 24"><path d="M17 10l4-4-4-4v3H9c-2.2 0-4 1.8-4 4v5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><path d="M17 21v-3H9c-2.2 0-4-1.8-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></symbol>
+  <symbol id="icon-split" viewBox="0 0 24 24"><path d="M16 11V3h-8v8l-4 4v6h16v-6l-4-4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></symbol>
+  <symbol id="icon-rotate" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><path d="M3 3v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></symbol>
+  <symbol id="icon-inspect" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></circle><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line></symbol>
+  <symbol id="icon-print" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><rect x="6" y="14" width="12" height="8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></rect></symbol>
+  <symbol id="icon-sign" viewBox="0 0 24 24"><path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></symbol>
+  <symbol id="icon-translate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></circle><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></symbol>
+  <symbol id="icon-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1" fill="currentColor"></circle><circle cx="19" cy="12" r="1" fill="currentColor"></circle><circle cx="5" cy="12" r="1" fill="currentColor"></circle></symbol>
+  <symbol id="icon-check" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></polyline></symbol>
+  <symbol id="icon-warn" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3.14h17a2 2 0 0 0 1.71-3.14L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line><line x1="12" y1="17" x2="12" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line></symbol>
+</svg>
+
+<div class="grid-bg"></div>
+<div class="glow-orb"></div>
+<div class="scanline"></div>
+
+<div class="wrapper">
+
+  <div class="status-bar">
+    <span class="time" id="clock">--:--</span>
+    <div class="status-icons">
+      <svg class="icon-svg" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="M2 20h20V2z" fill="currentColor"></path></svg>
+      <svg class="icon-svg" viewBox="0 0 24 24" style="width:16px;height:16px;margin-left:2px"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg>
+      <div class="status-dot"></div>
+    </div>
+  </div>
+
+  <nav class="navbar">
+    <div class="logo">
+      <div class="logo-icon">⬡</div>
+      FILE<span style="color:var(--teal)">ED</span>
+    </div>
+    <div class="hamburger">
+      <div class="ham-line"></div>
+      <div class="ham-line"></div>
+      <div class="ham-line"></div>
+    </div>
+  </nav>
+
+  <!-- DRAWER OVERLAY -->
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+
+  <!-- DRAWER PANEL -->
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <div class="drawer-user">
+        <div class="drawer-avatar">⬡</div>
+        <div>
+          <div class="drawer-username">OPERATOR_01</div>
+          <div class="drawer-tier">PRO TIER</div>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-nav">
+      <div class="drawer-section-label">Navigation</div>
+      <div class="drawer-nav-item active" data-tab="home">
+        <div class="drawer-nav-icon"><svg class="icon-svg"><use href="#icon-home"></use></svg></div>
+        <span class="drawer-nav-label">Home</span>
+      </div>
+      <div class="drawer-nav-item" data-tab="files">
+        <div class="drawer-nav-icon"><svg class="icon-svg"><use href="#icon-file"></use></svg></div>
+        <span class="drawer-nav-label">Files</span>
+        <span class="drawer-nav-badge">24</span>
+      </div>
+      <div class="drawer-nav-item" data-tab="upload">
+        <div class="drawer-nav-icon"><svg class="icon-svg"><use href="#icon-upload"></use></svg></div>
+        <span class="drawer-nav-label">Upload</span>
+      </div>
+      <div class="drawer-nav-item" data-tab="alerts">
+        <div class="drawer-nav-icon"><svg class="icon-svg"><use href="#icon-bell"></use></svg></div>
+        <span class="drawer-nav-label">Alerts</span>
+        <span class="drawer-nav-badge">3</span>
+      </div>
+      <div class="drawer-nav-item" data-tab="profile">
+        <div class="drawer-nav-icon"><svg class="icon-svg"><use href="#icon-profile"></use></svg></div>
+        <span class="drawer-nav-label">Profile</span>
+      </div>
+      <div class="drawer-divider"></div>
+      <div class="drawer-section-label">Tools</div>
+      <div class="drawer-nav-item">
+        <div class="drawer-nav-icon"><svg class="icon-svg"><use href="#icon-zap"></use></svg></div>
+        <span class="drawer-nav-label">Convert</span>
+      </div>
+      <div class="drawer-nav-item">
+        <div class="drawer-nav-icon"><svg class="icon-svg"><use href="#icon-lock"></use></svg></div>
+        <span class="drawer-nav-label">Encrypt</span>
+      </div>
+      <div class="drawer-nav-item">
+        <div class="drawer-nav-icon"><svg class="icon-svg"><use href="#icon-scissors"></use></svg></div>
+        <span class="drawer-nav-label">Compress</span>
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <div class="drawer-version">// FILEED v4.2.1 — BUILD 20260325</div>
+      <div class="drawer-logout" onclick="handleLogout()">⏏ &nbsp;SIGN OUT</div>
+    </div>
+  </div>
+
+  <section class="hero">
+    <div class="hero-tag">System v4.2.1 — Active</div>
+    <h1 class="hero-title">
+      <span class="line1">EDIT ANY</span>
+      <span class="line2">FILE FORMAT</span>
+    </h1>
+    <p class="hero-sub">Precision file editing for the modern era. Transform, convert, and manipulate any file with zero friction.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="document.querySelectorAll('.nav-item')[2].click()">↑ UPLOAD FILE</button>
+      <input type="file" id="file-upload-input" style="display:none" onchange="handleFileUpload(event)">
+    </div>
+  </section>
+
+  <div class="terminal-line" id="terminal-line">// initializing file_editor.core — all systems nominal_</div>
+
+  <div class="metrics">
+    <div class="metric">
+      <span class="metric-val" data-target="240" data-suffix="+">0</span>
+      <span class="metric-label">Formats</span>
+    </div>
+    <div class="metric">
+      <span class="metric-val" data-target="98" data-suffix="%">0</span>
+      <span class="metric-label">Speed</span>
+    </div>
+    <div class="metric">
+      <span class="metric-val" data-target="4" data-suffix="GB">0</span>
+      <span class="metric-label">Max Size</span>
+    </div>
+  </div>
+
+  <div class="section-header" style="animation:fade-up 0.7s 0.38s ease both;opacity:0;animation-fill-mode:both">
+    <span class="section-title">Drop Zone</span>
+  </div>
+  <div class="upload-zone" onclick="document.getElementById('file-upload-input').click()">
+    <div class="upload-icon"><svg class="icon-svg" style="width:1em;height:1em;"><use href="#icon-upload"></use></svg></div>
+    <div class="upload-title">TAP TO UPLOAD</div>
+    <div class="upload-sub">or drag & drop your file here</div>
+    <div class="upload-types">
+      <span class="type-badge">PDF</span>
+      <span class="type-badge">DOCX</span>
+      <span class="type-badge">JPG</span>
+      <span class="type-badge">MP4</span>
+      <span class="type-badge">CSV</span>
+      <span class="type-badge">SVG</span>
+      <span class="type-badge">+200</span>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">Core Tools</span>
+    <span class="section-link">All →</span>
+  </div>
+  <div class="features-scroll">
+    <div class="feature-card">
+      <span class="feature-icon" style="color:var(--cyan)"><svg class="icon-svg"><use href="#icon-zap"></use></svg></span>
+      <span class="feature-name">Convert</span>
+      <div class="feature-desc">Switch between 240+ formats instantly</div>
+      <span class="corner">01</span>
+    </div>
+    <div class="feature-card accent-teal">
+      <span class="feature-icon" style="color:var(--teal)"><svg class="icon-svg"><use href="#icon-scissors"></use></svg></span>
+      <span class="feature-name">Compress</span>
+      <div class="feature-desc">Reduce file size without quality loss</div>
+      <span class="corner">02</span>
+    </div>
+    <div class="feature-card accent-red">
+      <span class="feature-icon" style="color:var(--red)"><svg class="icon-svg"><use href="#icon-lock"></use></svg></span>
+      <span class="feature-name">Encrypt</span>
+      <div class="feature-desc">AES-256 protection for your files</div>
+      <span class="corner">03</span>
+    </div>
+    <div class="feature-card accent-gold">
+      <span class="feature-icon" style="color:var(--gold)"><svg class="icon-svg"><use href="#icon-repair"></use></svg></span>
+      <span class="feature-name">Repair</span>
+      <div class="feature-desc">Fix corrupted or damaged files</div>
+      <span class="corner">04</span>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">Activity</span>
+  </div>
+  <div class="activity">
+    <div class="activity-title">Processing Activity</div>
+    <div class="activity-bars" id="bars"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px">
+      <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">MON</span>
+      <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">TUE</span>
+      <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">WED</span>
+      <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">THU</span>
+      <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">FRI</span>
+      <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">SAT</span>
+      <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">SUN</span>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">Recent Files</span>
+    <span class="section-link" onclick="document.querySelectorAll('.nav-item')[1].click()">History →</span>
+  </div>
+  <div class="recent-files">
+    <div class="file-item">
+      <div class="file-ext ext-pdf">PDF</div>
+      <div class="file-info">
+        <div class="file-name">quarterly_report_2026.pdf</div>
+        <div class="file-meta"><span>2.4 MB</span><span>2 min ago</span></div>
+      </div>
+      <div class="file-action">⋯</div>
+    </div>
+    <div class="file-item">
+      <div class="file-ext ext-js">JS</div>
+      <div class="file-info">
+        <div class="file-name">app.bundle.min.js</div>
+        <div class="file-meta"><span>842 KB</span><span>18 min ago</span></div>
+      </div>
+      <div class="file-action">⋯</div>
+    </div>
+    <div class="file-item">
+      <div class="file-ext ext-md">MD</div>
+      <div class="file-info">
+        <div class="file-name">README_v2.md</div>
+        <div class="file-meta"><span>12 KB</span><span>1 hr ago</span></div>
+      </div>
+      <div class="file-action">⋯</div>
+    </div>
+    <div class="file-item">
+      <div class="file-ext ext-img">PNG</div>
+      <div class="file-info">
+        <div class="file-name">hero_banner_4k.png</div>
+        <div class="file-meta"><span>5.1 MB</span><span>3 hr ago</span></div>
+      </div>
+      <div class="file-action">⋯</div>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">Quick Actions</span>
+  </div>
+  <div class="quick-tools">
+    <div class="tools-grid">
+      <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-merge"></use></svg></span><div class="tool-label">Merge</div></div>
+      <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-split"></use></svg></span><div class="tool-label">Split</div></div>
+      <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-rotate"></use></svg></span><div class="tool-label">Rotate</div></div>
+      <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-inspect"></use></svg></span><div class="tool-label">Inspect</div></div>
+      <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-print"></use></svg></span><div class="tool-label">Print</div></div>
+      <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-sign"></use></svg></span><div class="tool-label">Sign</div></div>
+      <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-translate"></use></svg></span><div class="tool-label">Translate</div></div>
+      <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-more"></use></svg></span><div class="tool-label">More</div></div>
+    </div>
+  </div>
+
+</div>
+
+<nav class="bottom-nav">
+  <div class="nav-item active">
+    <span class="nav-icon"><svg class="icon-svg"><use href="#icon-home"></use></svg></span>
+    <span class="nav-label">HOME</span>
+  </div>
+  <div class="nav-item">
+    <span class="nav-icon"><svg class="icon-svg"><use href="#icon-file"></use></svg></span>
+    <span class="nav-label">FILES</span>
+  </div>
+  <div class="nav-item">
+    <span class="nav-icon"><svg class="icon-svg"><use href="#icon-upload"></use></svg></span>
+    <span class="nav-label">UPLOAD</span>
+  </div>
+  <div class="nav-item">
+    <span class="nav-icon"><svg class="icon-svg"><use href="#icon-bell"></use></svg></span>
+    <span class="nav-label">ALERTS</span>
+  </div>
+  <div class="nav-item">
+    <span class="nav-icon"><svg class="icon-svg"><use href="#icon-profile"></use></svg></span>
+    <span class="nav-label">PROFILE</span>
+  </div>
+</nav>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCZ4m_FPlIwFtpwihZPwxzzgPZK6Cg4amQ",
+    authDomain: "file-editor-8ac2c.firebaseapp.com",
+    projectId: "file-editor-8ac2c",
+    storageBucket: "file-editor-8ac2c.firebasestorage.app",
+    messagingSenderId: "350140779048",
+    appId: "1:350140779048:web:b5c47964fc2399f5d7431d",
+    measurementId: "G-P37N4W25PK"
+  };
+  firebase.initializeApp(firebaseConfig);
+</script>
+<script src="File_Editor.js"></script>
+
+
+</body>
+</html>
