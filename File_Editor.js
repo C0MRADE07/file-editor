@@ -1939,3 +1939,119 @@ function downloadBlob(bytes, fileName, type) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// ── ROTATE ENGINE ──
+let currentRotateFile = null;
+let currentRotationDegrees = 0;
+
+window.openRotate = function() {
+  const overlay = document.getElementById('rotate-overlay');
+  overlay.classList.remove('hidden');
+  overlay.querySelector('.tool-box').style.animation = 'fade-up 0.4s ease both';
+  window.clearRotate();
+};
+
+window.closeRotate = function() {
+  document.getElementById('rotate-overlay').classList.add('hidden');
+  window.clearRotate();
+};
+
+window.clearRotate = function() {
+  currentRotateFile = null;
+  currentRotationDegrees = 0;
+  document.getElementById('rotate-preview').classList.add('hidden');
+  document.getElementById('rotate-dropzone').classList.remove('hidden');
+  document.getElementById('rotate-filename').textContent = '';
+  document.getElementById('rotate-pages-count').textContent = '-- PAGES';
+  document.getElementById('rotate-btn').disabled = true;
+  document.getElementById('rotate-btn').textContent = "SYNC & ROTATE";
+  document.getElementById('rotate-btn').style.background = "";
+  document.getElementById('rotate-file-input').value = "";
+  updateRotationUI();
+};
+
+window.handleRotateSelect = async function(e) {
+  const file = e.target.files[0];
+  if (!file || file.type !== 'application/pdf') return;
+  
+  currentRotateFile = file;
+  document.getElementById('rotate-filename').textContent = file.name;
+  
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+    const pages = pdfDoc.getPageCount();
+    document.getElementById('rotate-pages-count').textContent = pages + " PAGES DETECTED";
+    
+    document.getElementById('rotate-dropzone').classList.add('hidden');
+    document.getElementById('rotate-preview').classList.remove('hidden');
+    document.getElementById('rotate-btn').disabled = false;
+  } catch (err) {
+    console.error("Error reading PDF for rotation:", err);
+    alert("SYSTEM ERROR: UNABLE TO ACCESS PDF DATA");
+    window.clearRotate();
+  }
+};
+
+window.updateRotation = function(deg) {
+  currentRotationDegrees = (currentRotationDegrees + deg) % 360;
+  if(currentRotationDegrees < 0) currentRotationDegrees += 360;
+  updateRotationUI();
+};
+
+function updateRotationUI() {
+  const indicator = document.getElementById('rotation-indicator');
+  if (indicator) {
+    indicator.textContent = currentRotationDegrees + "°";
+    indicator.style.transform = `rotate(${currentRotationDegrees}deg)`;
+  }
+}
+
+window.processRotation = async function() {
+  if (!currentRotateFile) return;
+  
+  const btn = document.getElementById('rotate-btn');
+  const oldText = btn.textContent;
+  btn.textContent = "REALIGNING AXIS...";
+  btn.disabled = true;
+  
+  try {
+    const { PDFDocument, degrees } = PDFLib;
+    const arrayBuffer = await currentRotateFile.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    
+    const pages = pdfDoc.getPages();
+    pages.forEach(page => {
+      const currentRotation = page.getRotation().angle;
+      page.setRotation(degrees(currentRotation + currentRotationDegrees));
+    });
+    
+    const pdfBytes = await pdfDoc.save();
+    const fileName = currentRotateFile.name.replace('.pdf', `_rotated_${currentRotationDegrees}.pdf`);
+    downloadBlob(pdfBytes, fileName, 'application/pdf');
+    
+    btn.textContent = "ROTATION COMPLETE ✓";
+    btn.style.background = "var(--green)";
+    
+    if (window.saveFileMetadata) {
+        window.saveFileMetadata({ name: fileName, size: pdfBytes.length, type: 'application/pdf' }, 'ROTATE');
+    }
+    
+    setTimeout(() => {
+        btn.textContent = oldText;
+        btn.style.background = "";
+        btn.disabled = false;
+        window.closeRotate();
+    }, 2500);
+    
+  } catch (err) {
+    console.error("Rotation error:", err);
+    btn.textContent = "CRITICAL FAILURE";
+    btn.style.background = "var(--red)";
+    setTimeout(() => {
+        btn.textContent = oldText;
+        btn.style.background = "";
+        btn.disabled = false;
+    }, 2500);
+  }
+};
