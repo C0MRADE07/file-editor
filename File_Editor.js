@@ -1282,15 +1282,73 @@ function renderUsersList(snapshot, container) {
         </div>
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
            <div style="font-family:var(--font-mono); font-size:12px; color:var(--text-dim);">ACCESS_CODE:</div>
-           <div class="password-morph" data-raw="${rawPass}" data-morphed="${morphedPass}" onclick="toggleRawPassword(this)" style="font-family:var(--font-mono); font-size:14px; color:var(--cyan); background:rgba(0,255,204,0.1); padding:4px 8px; border-radius:4px; cursor:pointer; letter-spacing:0.1em; transition:all 0.2s;" title="Click to Decrypt Password">
+           <div class="password-morph" data-raw="${rawPass}" data-morphed="${morphedPass}" onclick="toggleRawPassword(this)" style="font-family:var(--font-mono); font-size:14px; color:var(--cyan); background:rgba(0,255,204,0.1); padding:4px 8px; border-radius:4px; cursor:pointer; letter-spacing:0.1em; transition:all 0.2s; flex:1;" title="Click to Decrypt Password">
               ${morphedPass}
            </div>
+           <button class="btn-primary" style="padding:6px 12px; font-size:11px; background:transparent; border:1px solid var(--red); color:var(--red); letter-spacing:0.1em;" onclick="window.viewUserActivity('${handle}')">ACTIVITY</button>
         </div>
       </div>
     `;
   });
   container.innerHTML = html;
 }
+
+// ── ADMIN: SPECIFIC USER ACTIVITY ──
+let specificUserActivityUnsubscribe = null;
+
+window.viewUserActivity = function(handle) {
+  const overlay = document.getElementById('admin-user-activity-overlay');
+  const title = document.getElementById('admin-user-activity-title');
+  const list = document.getElementById('admin-user-activity-list');
+  
+  if (!overlay || !title || !list) return;
+
+  overlay.classList.remove('hidden');
+  title.textContent = `OP_LOG: ${handle.toUpperCase()}`;
+  list.innerHTML = '<div style="color:var(--text-dim); text-align:center; font-family:var(--font-mono); font-size:13px; margin-top:40px;">INITIALIZING DATA STREAM...</div>';
+  
+  if (specificUserActivityUnsubscribe) specificUserActivityUnsubscribe();
+  
+  if (!window.db) return;
+  
+  specificUserActivityUnsubscribe = window.db.collection('Users').doc(handle).collection('Activity')
+    .orderBy('timestamp', 'desc')
+    .limit(100)
+    .onSnapshot(snapshot => {
+      let html = '';
+      if (snapshot.empty) {
+        list.innerHTML = '<div style="color:var(--text-dim); font-size:13px; font-family:var(--font-mono); text-align:center; padding:40px 0;">/// NO_ACTIVITY_LOGGED ///</div>';
+        return;
+      }
+      
+      snapshot.forEach(doc => {
+        const act = doc.data();
+        const date = new Date(act.timestamp || Date.now());
+        const timeStr = date.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        
+        html += `
+          <div style="border-bottom:1px solid rgba(255,45,85,0.05); padding:12px 0; display:flex; gap:16px; align-items:center;">
+            <div style="font-family:var(--font-mono); font-size:11px; color:var(--red); width:80px; flex-shrink:0;">${timeStr}</div>
+            <div style="flex:1; font-family:var(--font-mono); font-size:12px; color:var(--text-bright);">${act.action}</div>
+            <div style="font-family:var(--font-mono); font-size:10px; color:var(--text-dim);">${dateStr}</div>
+          </div>
+        `;
+      });
+      list.innerHTML = html;
+    }, err => {
+      console.error("User Activity Stream Error:", err);
+      list.innerHTML = `<div style="color:var(--red); font-size:12px; font-family:var(--font-mono); text-align:center; padding:40px 0;">/// STREAM_ERROR: ${err.message.toUpperCase()} ///</div>`;
+    });
+};
+
+window.closeUserActivity = function() {
+  document.getElementById('admin-user-activity-overlay').classList.add('hidden');
+  if (specificUserActivityUnsubscribe) {
+    specificUserActivityUnsubscribe();
+    specificUserActivityUnsubscribe = null;
+  }
+};
 
 window.listenToGlobalActivity = function() {
   const container = document.getElementById('root-global-activity-list');
