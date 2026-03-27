@@ -6,14 +6,17 @@
 <title>FileEditor — Redefine Your Files</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="File_Editor.css">
+  <!-- LIBS -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 </head>
 <body>
 
   <!-- LOGIN OVERLAY -->
   <div class="login-overlay" id="login-overlay">
     <div class="login-box">
-      <div class="logo" style="justify-content:center; margin-bottom:32px; font-size:24px;">
-        <div class="logo-icon" style="width:40px;height:40px;font-size:20px;">⬡</div>
+      <div class="logo" style="justify-content:center; margin-bottom:32px; ">
+        <div class="logo-icon" style="width:40px;height:40px;">⬡</div>
         FILE<span style="color:var(--teal)">ED</span>
       </div>
 
@@ -23,11 +26,11 @@
         <p class="login-sub">Identify yourself to access the terminal.</p>
         
         <div class="login-input-group" style="margin-bottom:20px;">
-          <label style="display:block; font-family:var(--font-mono); font-size:12px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">OPERATOR HANDLE</label>
+          <label style="display:block; font-family:var(--font-mono);  color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">OPERATOR HANDLE</label>
           <input type="text" id="login-username" class="login-input" placeholder="e.g. Neo" autocomplete="off" onkeydown="if(event.key === 'Enter') document.getElementById('login-password').focus()">
         </div>
         <div class="login-input-group" style="position:relative; margin-bottom:20px;">
-          <label style="display:block; font-family:var(--font-mono); font-size:12px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">ACCESS CODES</label>
+          <label style="display:block; font-family:var(--font-mono);  color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">ACCESS CODES</label>
           <input type="password" id="login-password" class="login-input" placeholder="ENTER SECRET" style="padding-right:45px;" onkeydown="if(event.key === 'Enter') handleLogin()">
           <div onclick="togglePasswordVisibility('login-password', this)" style="position:absolute; right:12px; bottom:12px; cursor:pointer; color:var(--text-dim); transition:color 0.2s;">
             <svg class="icon-svg" style="width:18px;height:18px"><use href="#icon-inspect"></use></svg>
@@ -38,7 +41,7 @@
         
         <button class="btn-primary" id="login-btn" style="width:100%; margin-top:24px; padding:18px;" onclick="handleLogin()">INITIALIZE</button>
         <div style="text-align:center; margin-top:20px;">
-          <span onclick="guestLogin()" style="font-family:var(--font-mono); font-size:13px; color:var(--text-dim); cursor:pointer; letter-spacing:0.06em; transition:color 0.2s;" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='var(--text-dim)'">CONTINUE AS GUEST →</span>
+          <span onclick="guestLogin()" style="font-family:var(--font-mono);  color:var(--text-dim); cursor:pointer; letter-spacing:0.06em; transition:color 0.2s;" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='var(--text-dim)'">CONTINUE AS GUEST →</span>
         </div>
         <div style="text-align:center; margin-top:16px;">
           <span class="auth-toggle" onclick="toggleAuthView('signup')">NEW OPERATOR? → REGISTER</span>
@@ -51,18 +54,18 @@
         <p class="login-sub">Register your credentials for system access.</p>
         
         <div class="login-input-group" style="margin-bottom:20px;">
-          <label style="display:block; font-family:var(--font-mono); font-size:12px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">OPERATOR HANDLE</label>
+          <label style="display:block; font-family:var(--font-mono);  color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">OPERATOR HANDLE</label>
           <input type="text" id="signup-username" class="login-input" placeholder="e.g. Neo" autocomplete="off" onkeydown="if(event.key === 'Enter') document.getElementById('signup-password').focus()">
         </div>
         <div class="login-input-group" style="position:relative; margin-bottom:20px;">
-          <label style="display:block; font-family:var(--font-mono); font-size:12px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">ACCESS CODE</label>
+          <label style="display:block; font-family:var(--font-mono);  color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">ACCESS CODE</label>
           <input type="password" id="signup-password" class="login-input" placeholder="ENTER SECRET" style="padding-right:45px;" onkeydown="if(event.key === 'Enter') document.getElementById('signup-confirm').focus()">
           <div onclick="togglePasswordVisibility('signup-password', this)" style="position:absolute; right:12px; bottom:12px; cursor:pointer; color:var(--text-dim); transition:color 0.2s;">
             <svg class="icon-svg" style="width:18px;height:18px"><use href="#icon-inspect"></use></svg>
           </div>
         </div>
         <div class="login-input-group" style="position:relative; margin-bottom:20px;">
-          <label style="display:block; font-family:var(--font-mono); font-size:12px; color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">CONFIRM ACCESS CODE</label>
+          <label style="display:block; font-family:var(--font-mono);  color:var(--cyan); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;">CONFIRM ACCESS CODE</label>
           <input type="password" id="signup-confirm" class="login-input" placeholder="VERIFY SECRET" style="padding-right:45px;" onkeydown="if(event.key === 'Enter') handleSignUp()">
           <div onclick="togglePasswordVisibility('signup-confirm', this)" style="position:absolute; right:12px; bottom:12px; cursor:pointer; color:var(--text-dim); transition:color 0.2s;">
             <svg class="icon-svg" style="width:18px;height:18px"><use href="#icon-inspect"></use></svg>
@@ -90,27 +93,28 @@
       <div class="tool-body">
         <div class="compress-dropzone" id="compress-dropzone" onclick="document.getElementById('compress-file-input').click()">
           <svg class="icon-svg" style="width:40px;height:40px;color:var(--teal);margin-bottom:12px;"><use href="#icon-scissors"></use></svg>
-          <div style="font-size:14px;color:var(--text-bright)">DROP IMAGE HERE</div>
-          <div style="font-size:13px;color:var(--text-dim);margin-top:4px">JPG, PNG, WEBP</div>
+          <div style="color:var(--text-bright)">DROP IMAGE HERE</div>
+          <div style="color:var(--text-dim);margin-top:4px">JPG, PNG, WEBP</div>
         </div>
         <input type="file" id="compress-file-input" style="display:none" accept="image/*" onchange="handleCompressSelect(event)">
         
-        <div id="compress-preview" class="hidden" style="text-align:center;margin-bottom:20px;">
+        <div id="compress-preview" class="hidden" style="text-align:center;margin-bottom:20px;position:relative;">
+          <div class="close-btn" onclick="clearCompressFile()" style="position:absolute; top:-10px; right:10px; width:26px; height:26px; border-radius:50%; background:var(--red); color:white; display:flex; align-items:center; justify-content:center; font-family:var(--font-head);  font-weight:bold; cursor:pointer; box-shadow:0 0 12px rgba(255,45,85,0.4); z-index:10;">✕</div>
           <img id="compress-img" style="max-width:100%;max-height:150px;border-radius:8px;border:1px solid rgba(255,255,255,0.1)">
-          <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:14px;font-family:var(--font-mono)">
+          <div style="display:flex;justify-content:space-between;margin-top:12px;font-family:var(--font-mono)">
             <div>ORIGINAL: <span id="compress-orig-size" style="color:var(--cyan)">--</span></div>
             <div>NEW ESTIMATE: <span id="compress-new-size" style="color:var(--teal)">--</span></div>
           </div>
         </div>
 
         <div class="compress-controls">
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;font-family:var(--font-mono)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-family:var(--font-mono)">
             <span>QUALITY</span>
             <span id="quality-val">80%</span>
           </div>
           <input type="range" id="compress-quality" class="styled-slider" min="0.1" max="1.0" step="0.1" value="0.8" style="width:100%;margin-bottom:20px" oninput="updateCompressPreview()">
           
-          <div style="margin-bottom:8px;font-size:13px;font-family:var(--font-mono)">FORMAT</div>
+          <div style="margin-bottom:8px;font-family:var(--font-mono)">FORMAT</div>
           <select id="compress-format" class="login-input" style="margin-bottom:24px;padding:12px;" onchange="updateCompressPreview()">
             <option value="image/jpeg">JPEG (Smaller)</option>
             <option value="image/webp" selected>WEBP (Modern)</option>
@@ -135,30 +139,31 @@
         <div style="display:flex; justify-content:center; gap:20px; margin-bottom:24px;">
           <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
             <input type="radio" name="enc-mode" value="encrypt" checked onchange="updateEncryptMode()">
-            <span style="font-family:var(--font-mono); font-size:14px; color:var(--red);">ENCRYPT</span>
+            <span style="font-family:var(--font-mono);  color:var(--red);">ENCRYPT</span>
           </label>
           <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
             <input type="radio" name="enc-mode" value="decrypt" onchange="updateEncryptMode()">
-            <span style="font-family:var(--font-mono); font-size:14px; color:var(--cyan);">DECRYPT</span>
+            <span style="font-family:var(--font-mono);  color:var(--cyan);">DECRYPT</span>
           </label>
         </div>
 
         <div class="compress-dropzone" id="encrypt-dropzone" onclick="document.getElementById('encrypt-file-input').click()" style="border-color: rgba(255,45,85,0.3); background: rgba(255,45,85,0.03);">
           <svg class="icon-svg" id="encrypt-drop-icon" style="width:40px;height:40px;color:var(--red);margin-bottom:12px;"><use href="#icon-lock"></use></svg>
-          <div style="font-size:14px;color:var(--text-bright)" id="encrypt-drop-title">DROP FILE TO LOCK</div>
-          <div style="font-size:13px;color:var(--text-dim);margin-top:4px" id="encrypt-drop-sub">ANY FILE FORMAT</div>
+          <div style="color:var(--text-bright)" id="encrypt-drop-title">DROP FILE TO LOCK</div>
+          <div style="color:var(--text-dim);margin-top:4px" id="encrypt-drop-sub">ANY FILE FORMAT</div>
         </div>
         <input type="file" id="encrypt-file-input" style="display:none" onchange="handleEncryptSelect(event)">
         
-        <div id="encrypt-preview" class="hidden" style="text-align:center;margin-bottom:20px;">
-          <div class="file-ext ext-pdf" style="margin:0 auto 10px; width:48px; height:54px; font-size:14px; border-color:var(--red); color:var(--text);" id="encrypt-preview-ext">FILE</div>
-          <div class="file-name" id="encrypt-preview-name" style="font-size:14px; margin-bottom:4px; color:var(--text-bright);">filename.ext</div>
+        <div id="encrypt-preview" class="hidden" style="text-align:center;margin-bottom:20px;position:relative;">
+          <div class="close-btn" onclick="clearEncryptFile()" style="position:absolute; top:-10px; right:10px; width:26px; height:26px; border-radius:50%; background:var(--red); color:white; display:flex; align-items:center; justify-content:center; font-family:var(--font-head);  font-weight:bold; cursor:pointer; box-shadow:0 0 12px rgba(255,45,85,0.4); z-index:10;">✕</div>
+          <div class="file-ext ext-pdf" style="margin:0 auto 10px; width:48px; height:54px;  border-color:var(--red); color:var(--text);" id="encrypt-preview-ext">FILE</div>
+          <div class="file-name" id="encrypt-preview-name" style=" margin-bottom:4px; color:var(--text-bright);">filename.ext</div>
           <div class="file-meta" style="justify-content:center;"><span id="encrypt-preview-size" style="color:var(--cyan);">--</span></div>
         </div>
 
         <div class="login-input-group" style="position:relative; margin-bottom:24px;">
-          <label style="display:block; font-family:var(--font-mono); font-size:12px; color:var(--text-dim); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;" id="encrypt-pass-label">ACCESS PASSWORD</label>
-          <input type="password" id="encrypt-password" class="login-input" placeholder="ENTER SECRET" style="text-align:center; letter-spacing:0.3em; font-size:16px;" oninput="checkEncryptReady()">
+          <label style="display:block; font-family:var(--font-mono);  color:var(--text-dim); letter-spacing:0.15em; margin-bottom:8px; text-transform:uppercase;" id="encrypt-pass-label">ACCESS PASSWORD</label>
+          <input type="password" id="encrypt-password" class="login-input" placeholder="ENTER SECRET" style="text-align:center; letter-spacing:0.3em; " oninput="checkEncryptReady()">
           <div onclick="toggleEncryptPassword()" id="encrypt-pass-toggle" style="position:absolute; right:12px; bottom:14px; cursor:pointer; color:var(--text-dim); transition:color 0.2s;">
             <svg class="icon-svg" style="width:20px;height:20px"><use href="#icon-inspect"></use></svg>
           </div>
@@ -167,8 +172,84 @@
         <button class="btn-primary" id="encrypt-btn" style="width:100%;padding:16px;background:var(--red);color:#0a0e17" onclick="processEncryption()" disabled>LOCK FILE</button>
         
         <div id="admin-help-wrapper" class="hidden" style="text-align:center; margin-top:16px; animation:fade-up 0.4s ease both;">
-          <button class="btn-secondary" style="color:var(--gold); border-color:var(--gold); padding:8px 14px; font-size:12px; width:100%;" onclick="requestAdminHelp()">[ CONTACT SYS_ADMIN FOR CLEARANCE ]</button>
+          <button class="btn-secondary" style="color:var(--gold); border-color:var(--gold); padding:8px 14px;  width:100%;" onclick="requestAdminHelp()">[ CONTACT SYS_ADMIN FOR CLEARANCE ]</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MERGE OVERLAY -->
+  <div class="tool-overlay hidden" id="merge-overlay">
+    <div class="tool-box" style="border-color: var(--teal); box-shadow: 0 20px 60px rgba(0,255,204,0.08), inset 0 0 30px rgba(0,255,204,0.03);">
+      <div class="tool-header" style="background: rgba(0,255,204,0.05);">
+        <div class="tool-title" style="color: var(--teal);">MERGE STATION</div>
+        <div class="tool-close" onclick="closeMerge()">✕</div>
+      </div>
+      <div class="tool-body">
+        <div class="compress-dropzone" id="merge-dropzone" onclick="document.getElementById('merge-file-input').click()" style="border-color: var(--teal); background: rgba(0,255,204,0.03); padding: 24px;">
+          <svg class="icon-svg" style="width:40px;height:40px;color:var(--teal);margin-bottom:12px;"><use href="#icon-merge"></use></svg>
+          <div style="color:var(--text-bright)">DROP PDFs OR IMAGES</div>
+          <div style="color:var(--text-dim);margin-top:4px">SELECT MULTIPLE TO COMBINE</div>
+        </div>
+        <input type="file" id="merge-file-input" style="display:none" multiple accept=".pdf,image/*" onchange="handleMergeSelect(event)">
+        
+        <div id="merge-preview" class="hidden">
+          <div style="font-family:var(--font-mono); color:var(--text-dim); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.1em; display:flex; justify-content:space-between;">
+            <span>QUEUED FILES</span>
+            <span style="color:var(--teal)">DRAG TO REORDER</span>
+          </div>
+          <div id="merge-list-items" style="max-height:220px; overflow-y:auto; margin-bottom:24px; padding-right:4px;">
+            <!-- Dynamic Items -->
+          </div>
+        </div>
+
+        <button class="btn-primary" id="merge-btn" style="width:100%;padding:16px;background:var(--teal);color:#0a0e17" onclick="processMerge()" disabled>SYNC & MERGE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPLIT OVERLAY -->
+  <div class="tool-overlay hidden" id="split-overlay">
+    <div class="tool-box" style="border-color: var(--gold); box-shadow: 0 20px 60px rgba(255,183,0,0.08), inset 0 0 30px rgba(255,183,0,0.03);">
+      <div class="tool-header" style="background: rgba(255,183,0,0.05);">
+        <div class="tool-title" style="color: var(--gold);">DISSECTION HUB</div>
+        <div class="tool-close" onclick="closeSplit()">✕</div>
+      </div>
+      <div class="tool-body">
+        <div class="compress-dropzone" id="split-dropzone" onclick="document.getElementById('split-file-input').click()" style="border-color: var(--gold); background: rgba(255,183,0,0.03); padding: 24px;">
+          <svg class="icon-svg" style="width:40px;height:40px;color:var(--gold);margin-bottom:12px;"><use href="#icon-split"></use></svg>
+          <div style="color:var(--text-bright)">SELECT PDF TO DISSECT</div>
+          <div style="color:var(--text-dim);margin-top:4px">SINGLE SOURCE FILE ONLY</div>
+        </div>
+        <input type="file" id="split-file-input" style="display:none" accept=".pdf" onchange="handleSplitSelect(event)">
+        
+        <div id="split-preview" class="hidden">
+           <div class="file-item" style="margin-bottom:20px; border-color:var(--gold);">
+              <div class="file-ext ext-pdf" style="width:30px; height:34px; ">PDF</div>
+              <div class="file-info" style="margin-left:10px">
+                <div class="file-name" id="split-filename" style="">document.pdf</div>
+                <div class="file-meta" id="split-pages-count">-- PAGES</div>
+              </div>
+              <div class="file-action" onclick="clearSplit()" style="color:var(--red); border-color:rgba(255,45,85,0.2)">✕</div>
+           </div>
+
+           <div style="margin-bottom:24px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <label style="display:block; font-family:var(--font-mono);  color:var(--text-dim); text-transform:uppercase; letter-spacing:0.1em;">EXTRACTION SEGMENTS</label>
+                <div style="font-family:var(--font-mono);  color:var(--gold); cursor:pointer; text-decoration:underline;" onclick="addSplitRange()">+ ADD RANGE</div>
+              </div>
+              <div id="split-ranges-container" style="max-height:200px; overflow-y:auto; padding-right:4px;">
+                <!-- Dynamic Range Cards -->
+              </div>
+           </div>
+
+           <div class="opt-row" style="margin-bottom:24px; border-color:rgba(255,183,0,0.1);">
+              <span class="opt-label" style="font-family:var(--font-head);  color:var(--text-bright)">CONSOLIDATE INTO SINGLE FILE</span>
+              <div class="toggle on" id="split-consolidate" onclick="this.classList.toggle('on')"></div>
+           </div>
+        </div>
+
+        <button class="btn-primary" id="split-btn" style="width:100%;padding:16px;background:var(--gold);color:#0a0e17" onclick="processSplit()" disabled>INITIALIZE DISSECTION</button>
       </div>
     </div>
   </div>
@@ -371,13 +452,13 @@
     <div class="activity-title">Processing Activity</div>
     <div class="activity-bars" id="bars"></div>
     <div style="display:flex;justify-content:space-between;margin-top:8px">
-      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">MON</span>
-      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">TUE</span>
-      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">WED</span>
-      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">THU</span>
-      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">FRI</span>
-      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">SAT</span>
-      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">SUN</span>
+      <span style="font-family:var(--font-mono);color:var(--text-muted)">MON</span>
+      <span style="font-family:var(--font-mono);color:var(--text-muted)">TUE</span>
+      <span style="font-family:var(--font-mono);color:var(--text-muted)">WED</span>
+      <span style="font-family:var(--font-mono);color:var(--text-muted)">THU</span>
+      <span style="font-family:var(--font-mono);color:var(--text-muted)">FRI</span>
+      <span style="font-family:var(--font-mono);color:var(--text-muted)">SAT</span>
+      <span style="font-family:var(--font-mono);color:var(--text-muted)">SUN</span>
     </div>
   </div>
 
@@ -385,39 +466,8 @@
     <span class="section-title">Recent Files</span>
     <span class="section-link" onclick="document.querySelectorAll('.nav-item')[1].click()">History →</span>
   </div>
-  <div class="recent-files">
-    <div class="file-item">
-      <div class="file-ext ext-pdf">PDF</div>
-      <div class="file-info">
-        <div class="file-name">quarterly_report_2026.pdf</div>
-        <div class="file-meta"><span>2.4 MB</span><span>2 min ago</span></div>
-      </div>
-      <div class="file-action">⋯</div>
-    </div>
-    <div class="file-item">
-      <div class="file-ext ext-js">JS</div>
-      <div class="file-info">
-        <div class="file-name">app.bundle.min.js</div>
-        <div class="file-meta"><span>842 KB</span><span>18 min ago</span></div>
-      </div>
-      <div class="file-action">⋯</div>
-    </div>
-    <div class="file-item">
-      <div class="file-ext ext-md">MD</div>
-      <div class="file-info">
-        <div class="file-name">README_v2.md</div>
-        <div class="file-meta"><span>12 KB</span><span>1 hr ago</span></div>
-      </div>
-      <div class="file-action">⋯</div>
-    </div>
-    <div class="file-item">
-      <div class="file-ext ext-img">PNG</div>
-      <div class="file-info">
-        <div class="file-name">hero_banner_4k.png</div>
-        <div class="file-meta"><span>5.1 MB</span><span>3 hr ago</span></div>
-      </div>
-      <div class="file-action">⋯</div>
-    </div>
+  <div class="recent-files" id="recent-files-list">
+    <div style="color:var(--text-dim);  font-family:var(--font-mono); text-align:center; padding:20px; width:100%;">/// NO_RECENT_ACTIVITY ///</div>
   </div>
 
   <div class="section-header">
@@ -425,8 +475,8 @@
   </div>
   <div class="quick-tools">
     <div class="tools-grid">
-      <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-merge"></use></svg></span><div class="tool-label">Merge</div></div>
-      <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-split"></use></svg></span><div class="tool-label">Split</div></div>
+      <div class="tool-btn" onclick="openMerge()"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-merge"></use></svg></span><div class="tool-label">Merge</div></div>
+      <div class="tool-btn" onclick="openSplit()"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-split"></use></svg></span><div class="tool-label">Split</div></div>
       <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-rotate"></use></svg></span><div class="tool-label">Rotate</div></div>
       <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-inspect"></use></svg></span><div class="tool-label">Inspect</div></div>
       <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-print"></use></svg></span><div class="tool-label">Print</div></div>
@@ -453,7 +503,7 @@
       <div class="logo-icon" style="color:var(--red); border-color:var(--red);">⬡</div>
       SYS<span style="color:var(--text-bright)">ADMIN</span>
     </div>
-    <div style="font-size:24px; color:var(--red); cursor:pointer;" onclick="closeRootPanel()">✕</div>
+    <div style=" color:var(--red); cursor:pointer;" onclick="closeRootPanel()">✕</div>
   </nav>
 
   <div style="padding: 24px;">
@@ -468,8 +518,8 @@
     <!-- TELEMETRY TAB -->
     <div id="root-tab-telemetry" class="root-tab active">
       <div class="root-header" style="margin-bottom:32px;">
-        <h2 style="font-family:var(--font-head); font-size:24px; color:var(--red); letter-spacing:0.2em; margin:0 0 4px 0;">SYSTEM TELEMETRY</h2>
-        <p style="font-family:var(--font-mono); font-size:13px; color:var(--text-dim); margin:0;">ACTIVE ENCRYPTION NODES // NODE-A14</p>
+        <h2 style="font-family:var(--font-head);  color:var(--red); letter-spacing:0.2em; margin:0 0 4px 0;">SYSTEM TELEMETRY</h2>
+        <p style="font-family:var(--font-mono);  color:var(--text-dim); margin:0;">ACTIVE ENCRYPTION NODES // NODE-A14</p>
       </div>
 
       <!-- ROOT METRICS -->
@@ -501,8 +551,8 @@
     <!-- USERS TAB -->
     <div id="root-tab-users" class="root-tab" style="display:none;">
       <div class="root-header" style="margin-bottom:32px;">
-        <h2 style="font-family:var(--font-head); font-size:24px; color:var(--red); letter-spacing:0.2em; margin:0 0 4px 0;">SYSTEM OPERATORS</h2>
-        <p style="font-family:var(--font-mono); font-size:13px; color:var(--text-dim); margin:0;">GLOBAL USER REGISTRY</p>
+        <h2 style="font-family:var(--font-head);  color:var(--red); letter-spacing:0.2em; margin:0 0 4px 0;">SYSTEM OPERATORS</h2>
+        <p style="font-family:var(--font-mono);  color:var(--text-dim); margin:0;">GLOBAL USER REGISTRY</p>
       </div>
 
       <div class="section-header" style="border-bottom:1px solid rgba(255,45,85,0.3); padding-bottom:8px;">
@@ -517,8 +567,8 @@
     <!-- ACTIVITY TAB -->
     <div id="root-tab-activity" class="root-tab" style="display:none;">
       <div class="root-header" style="margin-bottom:32px;">
-        <h2 style="font-family:var(--font-head); font-size:24px; color:var(--red); letter-spacing:0.2em; margin:0 0 4px 0;">GLOBAL ACTIVITY</h2>
-        <p style="font-family:var(--font-mono); font-size:13px; color:var(--text-dim); margin:0;">REAL-TIME OPERATOR LOGS</p>
+        <h2 style="font-family:var(--font-head);  color:var(--red); letter-spacing:0.2em; margin:0 0 4px 0;">GLOBAL ACTIVITY</h2>
+        <p style="font-family:var(--font-mono);  color:var(--text-dim); margin:0;">REAL-TIME OPERATOR LOGS</p>
       </div>
 
       <div class="section-header" style="border-bottom:1px solid rgba(255,45,85,0.3); padding-bottom:8px;">

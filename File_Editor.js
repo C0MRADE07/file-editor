@@ -136,23 +136,9 @@ tabContents.files = (() => {
         <div class="filter-chip" onclick="filterByType(this)">Docs</div>
         <div class="filter-chip" onclick="filterByType(this)">Video</div>
       </div>
-      <div class="files-list">
-        ${[
-          {ext:'PDF',name:'annual_report_final.pdf',size:'3.8 MB',date:'Today',cls:'ext-pdf'},
-          {ext:'JS', name:'dashboard_v3.bundle.js',size:'1.2 MB',date:'Today',cls:'ext-js'},
-          {ext:'PNG',name:'wireframe_mockup.png',size:'4.4 MB',date:'Yesterday',cls:'ext-img'},
-          {ext:'MD', name:'CHANGELOG_v5.md',size:'8 KB',date:'Yesterday',cls:'ext-md'},
-          {ext:'PDF',name:'invoice_march2026.pdf',size:'512 KB',date:'Mar 23',cls:'ext-pdf'},
-          {ext:'PNG',name:'logo_export_2x.png',size:'2.1 MB',date:'Mar 22',cls:'ext-img'},
-        ].map(f=>`
-          <div class="file-item">
-            <div class="file-ext ${f.cls}">${f.ext}</div>
-            <div class="file-info">
-              <div class="file-name">${f.name}</div>
-              <div class="file-meta"><span>${f.size}</span><span>${f.date}</span></div>
-            </div>
-            <div class="file-action">⋯</div>
-          </div>`).join('')}
+      <div class="files-list" id="files-list">
+        <!-- Files dynamically injected here -->
+        <div style="color:var(--text-dim); font-size:14px; font-family:var(--font-mono); text-align:center; padding:40px 0;">/// STORAGE_MODULE_EMPTY ///</div>
       </div>
     </div>`;
   return el;
@@ -344,6 +330,9 @@ window.handleFileUpload = function(e) {
     `;
     zone.removeAttribute('onclick'); 
   });
+
+  // SAVE METADATA
+  if (window.saveFileMetadata) window.saveFileMetadata(file, 'UPLOAD');
 };
 
 window.clearFile = function(e, idx) {
@@ -421,6 +410,10 @@ function applyUserUI(displayName) {
     const rootNav = document.getElementById('nav-root');
     if (rootNav) rootNav.style.display = 'none';
   }
+
+  // START RECENT FILES MONITORING
+  listenToRecentFiles();
+  listenToAllFiles();
 }
 
 
@@ -644,10 +637,15 @@ window.openCompressor = function() {
 
 window.closeCompressor = function() {
   document.getElementById('compressor-overlay').classList.add('hidden');
-  // Reset
+  window.clearCompressFile();
+};
+
+window.clearCompressFile = function() {
   document.getElementById('compress-dropzone').classList.remove('hidden');
   document.getElementById('compress-preview').classList.add('hidden');
   document.getElementById('compress-btn').disabled = true;
+  document.getElementById('compress-btn').textContent = "DOWNLOAD COMPRESSED";
+  document.getElementById('compress-btn').style.background = "";
   document.getElementById('compress-file-input').value = "";
   currentCompressFile = null;
 };
@@ -738,6 +736,8 @@ window.downloadCompressed = function() {
         
         // Success feedback
         if (window.logUserActivity) window.logUserActivity("FILE COMPRESSED: " + currentCompressFile.name);
+        if (window.saveFileMetadata) window.saveFileMetadata({ name: newName, size: blob.size, type: blob.type }, 'COMPRESS');
+        
         btn.textContent = "DONE ✓";
         btn.style.background = "var(--teal)";
         setTimeout(() => {
@@ -759,18 +759,20 @@ window.openEncryptor = function() {
   const overlay = document.getElementById('encryptor-overlay');
   overlay.classList.remove('hidden');
   overlay.querySelector('.tool-box').style.animation = 'fade-up 0.4s ease both';
-  resetEncryptUI();
+  window.clearEncryptFile();
 };
 
 window.closeEncryptor = function() {
   document.getElementById('encryptor-overlay').classList.add('hidden');
-  resetEncryptUI();
+  window.clearEncryptFile();
 };
 
-function resetEncryptUI() {
+window.clearEncryptFile = function() {
   document.getElementById('encrypt-dropzone').classList.remove('hidden');
   document.getElementById('encrypt-preview').classList.add('hidden');
   document.getElementById('encrypt-btn').disabled = true;
+  document.getElementById('encrypt-btn').textContent = encryptMode === 'encrypt' ? "LOCK FILE" : "UNLOCK FILE";
+  document.getElementById('encrypt-btn').style.background = encryptMode === 'encrypt' ? "var(--red)" : "var(--cyan)";
   document.getElementById('encrypt-file-input').value = "";
   document.getElementById('encrypt-password').value = "";
   document.getElementById('admin-help-wrapper').classList.add('hidden');
@@ -778,7 +780,7 @@ function resetEncryptUI() {
   currentEncryptBuffer = null;
   decryptFailCount = 0;
   updateEncryptMode();
-}
+};
 
 window.updateEncryptMode = function() {
   const modeRadios = document.getElementsByName('enc-mode');
@@ -1004,7 +1006,10 @@ async function runEncrypt(pwd) {
   finalFile.set(iv, 16);
   finalFile.set(new Uint8Array(encryptedContent), 28);
   
-  triggerDownload(new Blob([finalFile]), currentEncryptFile.name + ".enc");
+  const encBlob = new Blob([finalFile]);
+  if (window.saveFileMetadata) window.saveFileMetadata({ name: currentEncryptFile.name + ".enc", size: encBlob.size, type: 'application/octet-stream' }, 'ENCRYPT');
+  
+  triggerDownload(encBlob, currentEncryptFile.name + ".enc");
 }
 
 async function runDecrypt(pwd) {
@@ -1031,7 +1036,10 @@ async function runDecrypt(pwd) {
   
   const originalFileData = decView.slice(1 + nameLen);
   
-  triggerDownload(new Blob([originalFileData]), originalName);
+  const decBlob = new Blob([originalFileData]);
+  if (window.saveFileMetadata) window.saveFileMetadata({ name: originalName, size: decBlob.size, type: 'application/octet-stream' }, 'DECRYPT');
+  
+  triggerDownload(decBlob, originalName);
 }
 
 function triggerDownload(blob, filename) {
@@ -1314,12 +1322,12 @@ window.listenToGlobalActivity = function() {
         
         html += `
           <div class="root-card" style="background:rgba(255,45,85,0.01); border:1px solid rgba(255,45,85,0.15); padding:12px 16px; margin-bottom:8px; display:flex; align-items:center; gap:16px;">
-            <div style="font-family:var(--font-mono); font-size:10px; color:var(--red); width:70px; flex-shrink:0;">${exactTime}</div>
+            <div style="font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--red); width:80px; flex-shrink:0;">${exactTime}</div>
             <div style="flex:1;">
-               <div style="font-family:var(--font-head); font-size:11px; color:var(--text-bright); margin-bottom:2px;">${userHandle.toUpperCase()}</div>
-               <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-dim);">${act.action}</div>
+               <div style="font-family:var(--font-head); font-size:var(--fs-sm); color:var(--text-bright); margin-bottom:2px;">${userHandle.toUpperCase()}</div>
+               <div style="font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--text-dim);">${act.action}</div>
             </div>
-            <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-muted);">${dateStr}</div>
+            <div style="font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-muted);">${dateStr}</div>
           </div>
         `;
       });
@@ -1385,3 +1393,549 @@ document.addEventListener('DOMContentLoaded', () => {
   const encryptZone = document.getElementById('encrypt-dropzone');
   if (encryptZone) setupDragAndDrop(encryptZone, 'encrypt-file-input');
 });
+
+// ── RECENT FILES SYSTEM ──
+let recentFilesUnsubscribe = null;
+let allFilesUnsubscribe = null;
+
+window.saveFileMetadata = function(fileObj, actionType) {
+  if (!window.db) return;
+  const userEl = document.querySelector('.drawer-username');
+  if (!userEl) return;
+  let handle = userEl.textContent.toLowerCase();
+  if (!handle || handle === 'unknown_op' || handle.startsWith('guest_')) return;
+
+  const fileName = fileObj.name;
+  const fileSize = (fileObj.size / (1024 * 1024)).toFixed(2) + ' MB';
+  const fileType = fileObj.type || 'Unknown';
+  const timestamp = Date.now();
+
+  window.db.collection('Users').doc(handle).collection('Files').add({
+    name: fileName,
+    size: fileSize,
+    type: fileType,
+    action: actionType,
+    timestamp: timestamp
+  }).catch(err => console.error("Error saving file metadata:", err));
+
+  if (window.logUserActivity) window.logUserActivity(`${actionType}: ${fileName}`);
+};
+
+window.listenToRecentFiles = function() {
+  const container = document.getElementById('recent-files-list');
+  if (!container || !window.db) return;
+
+  const userEl = document.querySelector('.drawer-username');
+  let handle = userEl.textContent.toLowerCase();
+  if (!handle || handle === 'unknown_op' || handle.startsWith('guest_')) return;
+
+  if (recentFilesUnsubscribe) recentFilesUnsubscribe();
+
+  recentFilesUnsubscribe = window.db.collection('Users').doc(handle).collection('Files')
+    .orderBy('timestamp', 'desc')
+    .limit(4)
+    .onSnapshot(snapshot => {
+      if (snapshot.empty) {
+        container.innerHTML = '<div style="color:var(--text-dim); font-size:13px; font-family:var(--font-mono); text-align:center; padding:20px; width:100%;">/// NO_RECENT_ACTIVITY ///</div>';
+        return;
+      }
+      let html = '';
+      snapshot.forEach(doc => {
+        html += renderFileItem(doc.data());
+      });
+      container.innerHTML = html;
+    }, err => {
+      console.warn("Recent files listener error (likely index):", err);
+      // Fallback for missing index: orderBy might fail
+      window.db.collection('Users').doc(handle).collection('Files')
+        .limit(10)
+        .onSnapshot(snapshot => {
+          let docs = [];
+          snapshot.forEach(d => docs.push(d.data()));
+          docs.sort((a,b) => b.timestamp - a.timestamp);
+          let html = '';
+          docs.slice(0, 4).forEach(data => { html += renderFileItem(data); });
+          container.innerHTML = html || '<div style="color:var(--text-dim); font-size:13px; font-family:var(--font-mono); text-align:center; padding:20px; width:100%;">/// NO_RECENT_ACTIVITY ///</div>';
+        });
+    });
+};
+
+window.listenToAllFiles = function() {
+  const container = document.getElementById('files-list');
+  if (!container || !window.db) return;
+
+  const userEl = document.querySelector('.drawer-username');
+  let handle = userEl.textContent.toLowerCase();
+  if (!handle || handle === 'unknown_op' || handle.startsWith('guest_')) return;
+
+  if (allFilesUnsubscribe) allFilesUnsubscribe();
+
+  allFilesUnsubscribe = window.db.collection('Users').doc(handle).collection('Files')
+    .orderBy('timestamp', 'desc')
+    .onSnapshot(snapshot => {
+      if (snapshot.empty) {
+        container.innerHTML = '<div style="color:var(--text-dim); font-size:14px; font-family:var(--font-mono); text-align:center; padding:40px 0;">/// STORAGE_MODULE_EMPTY ///</div>';
+        return;
+      }
+      let html = '';
+      snapshot.forEach(doc => {
+        html += renderFileItem(doc.data());
+      });
+      container.innerHTML = html;
+    }, err => {
+      console.warn("All files listener error (likely index):", err);
+      window.db.collection('Users').doc(handle).collection('Files')
+        .onSnapshot(snapshot => {
+          let docs = [];
+          snapshot.forEach(d => docs.push(d.data()));
+          docs.sort((a,b) => b.timestamp - a.timestamp);
+          let html = '';
+          docs.forEach(data => { html += renderFileItem(data); });
+          container.innerHTML = html || '<div style="color:var(--text-dim); font-size:14px; font-family:var(--font-mono); text-align:center; padding:40px 0;">/// STORAGE_MODULE_EMPTY ///</div>';
+        });
+    });
+};
+
+function renderFileItem(file) {
+  const config = getFileUIConfig(file.name);
+  const timeStr = formatRelativeTime(file.timestamp);
+  
+  return `
+    <div class="file-item" style="animation: fade-up 0.4s ease both;">
+      <div class="file-ext ${config.cls}">${config.ext}</div>
+      <div class="file-info">
+        <div class="file-name">${file.name}</div>
+        <div class="file-meta"><span>${file.size}</span><span>${timeStr}</span><span style="color:var(--teal); font-size:9px; border:1px solid rgba(0,255,204,0.2); padding:1px 4px; border-radius:3px; margin-left:4px;">${file.action}</span></div>
+      </div>
+      <div class="file-action" onclick="showFileOptions('${file.name}')">⋯</div>
+    </div>
+  `;
+}
+
+function getFileUIConfig(fileName) {
+  const ext = fileName.includes('.') ? fileName.split('.').pop().toUpperCase() : 'FILE';
+  let cls = 'ext-md';
+  if (ext === 'PDF') cls = 'ext-pdf';
+  else if (['JPG', 'PNG', 'SVG', 'WEBP', 'GIF'].includes(ext)) cls = 'ext-img';
+  else if (['JS', 'TS', 'HTML', 'CSS', 'JSON'].includes(ext)) cls = 'ext-js';
+  
+  return { ext: ext.substring(0, 4), cls: cls };
+}
+
+function formatRelativeTime(timestamp) {
+  const diff = Date.now() - timestamp;
+  const sec = Math.floor(diff / 1000);
+  const min = Math.floor(sec / 60);
+  const hr = Math.floor(min / 60);
+  const day = Math.floor(hr / 24);
+
+  if (day > 0) return day + 'd ago';
+  if (hr > 0) return hr + 'h ago';
+  if (min > 0) return min + ' min ago';
+  return 'just now';
+}
+
+window.showFileOptions = function(name) {
+  console.log("Options for: " + name);
+  // Future: Show a context menu for re-downloading or deleting metadata
+};
+
+// ── MERGE ENGINE ──
+let mergeFilesArray = [];
+let sortableInstance = null;
+
+window.openMerge = function() {
+  const overlay = document.getElementById('merge-overlay');
+  overlay.classList.remove('hidden');
+  overlay.querySelector('.tool-box').style.animation = 'fade-up 0.4s ease both';
+  window.clearMerge();
+};
+
+window.closeMerge = function() {
+  document.getElementById('merge-overlay').classList.add('hidden');
+  window.clearMerge();
+};
+
+window.clearMerge = function() {
+  mergeFilesArray = [];
+  document.getElementById('merge-preview').classList.add('hidden');
+  document.getElementById('merge-dropzone').classList.remove('hidden');
+  document.getElementById('merge-list-items').innerHTML = '';
+  document.getElementById('merge-btn').disabled = true;
+  document.getElementById('merge-btn').textContent = "SYNC & MERGE";
+  document.getElementById('merge-btn').style.background = "";
+  document.getElementById('merge-file-input').value = "";
+  if (sortableInstance) sortableInstance.destroy();
+  sortableInstance = null;
+};
+
+window.handleMergeSelect = function(e) {
+  const files = Array.from(e.target.files);
+  if (files.length === 0) return;
+  
+  // Add to existing array
+  mergeFilesArray = [...mergeFilesArray, ...files];
+  renderMergeList();
+  
+  document.getElementById('merge-dropzone').classList.add('hidden');
+  document.getElementById('merge-preview').classList.remove('hidden');
+  document.getElementById('merge-btn').disabled = mergeFilesArray.length < 2;
+};
+
+function renderMergeList() {
+  const container = document.getElementById('merge-list-items');
+  container.innerHTML = '';
+  
+  mergeFilesArray.forEach((file, index) => {
+    const config = getFileUIConfig(file.name);
+    const size = (file.size / 1024).toFixed(1) + ' KB';
+    
+    const div = document.createElement('div');
+    div.className = 'file-item';
+    div.style.margin = '0 0 8px 0';
+    div.style.cursor = 'grab';
+    div.setAttribute('data-index', index);
+    div.innerHTML = `
+      <div class="file-ext ${config.cls}" style="width:34px; height:38px; font-size:var(--fs-xs);">${config.ext}</div>
+      <div class="file-info" style="margin-left:14px">
+        <div class="file-name" style="font-size:var(--fs-sm)">${file.name}</div>
+        <div class="file-meta"><span>${size}</span></div>
+      </div>
+      <div class="file-action" onclick="removeMergeFile(${index})" style="color:var(--red); border-color:rgba(255,45,85,0.2)">✕</div>
+    `;
+    container.appendChild(div);
+  });
+  
+  // ADD MORE FILES BUTTON IN LIST
+  const addMoreDiv = document.createElement('div');
+  addMoreDiv.className = 'file-item';
+  addMoreDiv.style.borderStyle = 'dashed';
+  addMoreDiv.style.borderColor = 'var(--teal)';
+  addMoreDiv.style.background = 'rgba(0,255,204,0.02)';
+  addMoreDiv.style.justifyContent = 'center';
+  addMoreDiv.style.cursor = 'pointer';
+  addMoreDiv.onclick = () => document.getElementById('merge-file-input').click();
+  addMoreDiv.innerHTML = `
+    <div style="font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--teal); font-weight:600;">+ ADD MORE FILES</div>
+  `;
+  container.appendChild(addMoreDiv);
+  
+  if (mergeFilesArray.length > 1) {
+    if (sortableInstance) sortableInstance.destroy();
+    sortableInstance = Sortable.create(container, {
+      animation: 150,
+      ghostClass: 'cyan-ghost',
+      filter: '.file-item[onclick]', // Don't drag the "+ ADD MORE" button
+      onEnd: function() {
+        const newOrder = [];
+        container.querySelectorAll('.file-item:not([onclick])').forEach(el => {
+          const idx = el.getAttribute('data-index');
+          if (idx !== null) newOrder.push(mergeFilesArray[parseInt(idx)]);
+        });
+        mergeFilesArray = newOrder;
+        // Re-render to update the data-index attributes
+        renderMergeList();
+      }
+    });
+  }
+}
+
+window.removeMergeFile = function(index) {
+  mergeFilesArray.splice(index, 1);
+  if (mergeFilesArray.length === 0) {
+    window.clearMerge();
+  } else {
+    renderMergeList();
+    document.getElementById('merge-btn').disabled = mergeFilesArray.length < 2;
+  }
+};
+
+window.processMerge = async function() {
+  if (mergeFilesArray.length < 2) return;
+  
+  const btn = document.getElementById('merge-btn');
+  const oldText = btn.textContent;
+  btn.textContent = "SYNCHRONIZING BITS...";
+  btn.disabled = true;
+  
+  try {
+    const { PDFDocument } = PDFLib;
+    const mergedPdf = await PDFDocument.create();
+    
+    for (const file of mergeFilesArray) {
+      const arrayBuffer = await file.arrayBuffer();
+      
+      if (file.type === 'application/pdf') {
+        const pdf = await PDFDocument.load(arrayBuffer);
+        const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+        copiedPages.forEach((page) => mergedPdf.addPage(page));
+      } else if (file.type.startsWith('image/')) {
+        let image;
+        if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
+          image = await mergedPdf.embedJpg(arrayBuffer);
+        } else if (file.type === 'image/png') {
+          image = await mergedPdf.embedPng(arrayBuffer);
+        } else {
+          continue; // Skip unsupported images
+        }
+        
+        const page = mergedPdf.addPage([image.width, image.height]);
+        page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+      }
+    }
+    
+    const mergedPdfBytes = await mergedPdf.save();
+    const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+    const fileName = "FileEd_Merged_" + Date.now().toString().slice(-6) + ".pdf";
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    // UI SUCCESS
+    btn.textContent = "CONVERGENCE COMPLETE ✓";
+    btn.style.background = "var(--green)";
+    
+    // FIREBASE LOG
+    if (window.saveFileMetadata) {
+      window.saveFileMetadata({ name: fileName, size: blob.size, type: 'application/pdf' }, 'MERGE');
+    }
+    
+    setTimeout(() => {
+        btn.textContent = oldText;
+        btn.style.background = "";
+        btn.disabled = false;
+        window.closeMerge();
+    }, 2500);
+    
+  } catch (err) {
+    console.error("Merge error:", err);
+    btn.textContent = "CRITICAL FAILURE";
+    btn.style.background = "var(--red)";
+    setTimeout(() => {
+        btn.textContent = oldText;
+        btn.style.background = "";
+        btn.disabled = false;
+    }, 2500);
+  }
+};
+
+// ── SPLIT ENGINE ──
+let currentSplitFile = null;
+let currentPdfPages = 0;
+let splitRangesArray = [];
+
+window.openSplit = function() {
+  const overlay = document.getElementById('split-overlay');
+  overlay.classList.remove('hidden');
+  overlay.querySelector('.tool-box').style.animation = 'fade-up 0.4s ease both';
+  window.clearSplit();
+};
+
+window.closeSplit = function() {
+  document.getElementById('split-overlay').classList.add('hidden');
+  window.clearSplit();
+};
+
+window.clearSplit = function() {
+  currentSplitFile = null;
+  currentPdfPages = 0;
+  splitRangesArray = [];
+  document.getElementById('split-preview').classList.add('hidden');
+  document.getElementById('split-dropzone').classList.remove('hidden');
+  document.getElementById('split-ranges-container').innerHTML = '';
+  document.getElementById('split-filename').textContent = '';
+  document.getElementById('split-pages-count').textContent = '-- PAGES';
+  document.getElementById('split-btn').disabled = true;
+  document.getElementById('split-btn').textContent = "INITIALIZE DISSECTION";
+  document.getElementById('split-btn').style.background = "";
+  document.getElementById('split-file-input').value = "";
+};
+
+window.handleSplitSelect = async function(e) {
+  const file = e.target.files[0];
+  if (!file || file.type !== 'application/pdf') return;
+  
+  currentSplitFile = file;
+  document.getElementById('split-filename').textContent = file.name;
+  
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+    currentPdfPages = pdfDoc.getPageCount();
+    document.getElementById('split-pages-count').textContent = currentPdfPages + " PAGES DETECTED";
+    
+    // Add default range
+    splitRangesArray = [{ from: 1, to: currentPdfPages }];
+    renderSplitRanges();
+    
+    document.getElementById('split-dropzone').classList.add('hidden');
+    document.getElementById('split-preview').classList.remove('hidden');
+    validateSplit();
+  } catch (err) {
+    console.error("Error reading PDF metadata:", err);
+    alert("SYSTEM ERROR: UNABLE TO PARSE PDF BITSTREAM");
+    window.clearSplit();
+  }
+};
+
+window.addSplitRange = function() {
+  if (!currentPdfPages) return;
+  splitRangesArray.push({ from: 1, to: currentPdfPages });
+  renderSplitRanges();
+  validateSplit();
+};
+
+window.removeSplitRange = function(index) {
+  splitRangesArray.splice(index, 1);
+  if (splitRangesArray.length === 0) {
+    window.addSplitRange();
+  } else {
+    renderSplitRanges();
+    validateSplit();
+  }
+};
+
+window.updateSplitRangeValue = function(index, field, value) {
+  let val = parseInt(value);
+  if (isNaN(val)) val = 1;
+  splitRangesArray[index][field] = val;
+  validateSplit();
+};
+
+function renderSplitRanges() {
+  const container = document.getElementById('split-ranges-container');
+  container.innerHTML = '';
+  
+  splitRangesArray.forEach((range, index) => {
+    const div = document.createElement('div');
+    div.className = 'file-item range-card';
+    div.style.marginBottom = '10px';
+    div.style.padding = '8px 12px';
+    div.style.borderColor = 'rgba(255,183,0,0.2)';
+    div.style.background = 'rgba(0,0,0,0.2)';
+    
+    div.innerHTML = `
+      <div style="font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--gold); margin-right:12px; font-weight:bold;">R${index+1}</div>
+      <div style="display:flex; align-items:center; gap:8px; flex:1;">
+        <span style="font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-dim);">FROM</span>
+        <input type="number" class="range-input" value="${range.from}" min="1" max="${currentPdfPages}" onchange="updateSplitRangeValue(${index}, 'from', this.value)" style="width:60px; background:transparent; border:1px solid rgba(255,183,0,0.3); color:var(--text-bright); font-family:var(--font-mono); font-size:var(--fs-sm); text-align:center; padding:4px;">
+        <span style="font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-dim);">TO</span>
+        <input type="number" class="range-input" value="${range.to}" min="1" max="${currentPdfPages}" onchange="updateSplitRangeValue(${index}, 'to', this.value)" style="width:60px; background:transparent; border:1px solid rgba(255,183,0,0.3); color:var(--text-bright); font-family:var(--font-mono); font-size:var(--fs-sm); text-align:center; padding:4px;">
+      </div>
+      <div class="file-action" onclick="removeSplitRange(${index})" style="color:var(--red); border-color:rgba(255,45,85,0.2); width:28px; height:28px; font-size:var(--fs-xs);">✕</div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+window.validateSplit = function() {
+  const btn = document.getElementById('split-btn');
+  let isValid = splitRangesArray.length > 0;
+  
+  splitRangesArray.forEach(range => {
+    if (range.from < 1 || range.to < 1 || range.from > currentPdfPages || range.to > currentPdfPages || range.from > range.to) {
+      isValid = false;
+    }
+  });
+  
+  btn.disabled = !isValid;
+};
+
+window.processSplit = async function() {
+  if (!currentSplitFile || !currentPdfPages || splitRangesArray.length === 0) return;
+  
+  const btn = document.getElementById('split-btn');
+  const oldText = btn.textContent;
+  const isConsolidated = document.getElementById('split-consolidate').classList.contains('on');
+  
+  btn.textContent = "EXTRACTING SECTORS...";
+  btn.disabled = true;
+  
+  try {
+    const { PDFDocument } = PDFLib;
+    const arrayBuffer = await currentSplitFile.arrayBuffer();
+    const sourcePdf = await PDFDocument.load(arrayBuffer);
+    
+    if (isConsolidated) {
+      // Create one PDF with all selected unique pages from all ranges
+      const allPageIndices = new Set();
+      splitRangesArray.forEach(range => {
+        for (let i = range.from - 1; i < range.to; i++) {
+          allPageIndices.add(i);
+        }
+      });
+      const sortedIndices = Array.from(allPageIndices).sort((a, b) => a - b);
+      
+      const newPdf = await PDFDocument.create();
+      const copiedPages = await newPdf.copyPages(sourcePdf, sortedIndices);
+      copiedPages.forEach(p => newPdf.addPage(p));
+      
+      const pdfBytes = await newPdf.save();
+      const fileName = currentSplitFile.name.replace('.pdf', '_split_consolidated.pdf');
+      downloadBlob(pdfBytes, fileName, 'application/pdf');
+      
+      if (window.saveFileMetadata) {
+        window.saveFileMetadata({ name: fileName, size: pdfBytes.length, type: 'application/pdf' }, 'SPLIT');
+      }
+    } else {
+      // Download each range individually
+      for (let i = 0; i < splitRangesArray.length; i++) {
+        const range = splitRangesArray[i];
+        const pageIndices = [];
+        for (let j = range.from - 1; j < range.to; j++) {
+          pageIndices.push(j);
+        }
+        
+        const newPdf = await PDFDocument.create();
+        const copiedPages = await newPdf.copyPages(sourcePdf, pageIndices);
+        copiedPages.forEach(p => newPdf.addPage(p));
+        
+        const pdfBytes = await newPdf.save();
+        const fileName = currentSplitFile.name.replace('.pdf', `_range_${range.from}-${range.to}.pdf`);
+        downloadBlob(pdfBytes, fileName, 'application/pdf');
+        
+        if (window.saveFileMetadata) {
+            window.saveFileMetadata({ name: fileName, size: pdfBytes.length, type: 'application/pdf' }, 'SPLIT');
+        }
+      }
+    }
+    
+    btn.textContent = "DISSECTION COMPLETE ✓";
+    btn.style.background = "var(--green)";
+    
+    setTimeout(() => {
+        btn.textContent = oldText;
+        btn.style.background = "";
+        btn.disabled = false;
+        window.closeSplit();
+    }, 2500);
+    
+  } catch (err) {
+    console.error("Split error:", err);
+    btn.textContent = "DISSECTION FAILED";
+    btn.style.background = "var(--red)";
+    setTimeout(() => {
+        btn.textContent = oldText;
+        btn.style.background = "";
+        btn.disabled = false;
+    }, 2500);
+  }
+};
+
+function downloadBlob(bytes, fileName, type) {
+  const blob = new Blob([bytes], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
