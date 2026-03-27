@@ -299,6 +299,31 @@
     </div>
   </div>
 
+  <!-- INSPECT OVERLAY -->
+  <div class="tool-overlay hidden" id="inspect-overlay">
+    <div class="tool-box" style="border-color: var(--teal); box-shadow: 0 20px 60px rgba(0,255,204,0.08), inset 0 0 30px rgba(0,255,204,0.03);">
+      <div class="tool-header" style="background: rgba(0,255,204,0.05);">
+        <div class="tool-title" style="color: var(--teal);">INSPECTION BAY</div>
+        <div class="tool-close" onclick="closeInspect()">✕</div>
+      </div>
+      <div class="tool-body">
+        <div class="compress-dropzone" id="inspect-dropzone" onclick="document.getElementById('inspect-file-input').click()" style="border-color: var(--teal); background: rgba(0,255,204,0.03); padding: 24px;">
+          <svg class="icon-svg" style="width:40px;height:40px;color:var(--teal);margin-bottom:12px;"><use href="#icon-inspect"></use></svg>
+          <div style="color:var(--text-bright)">SELECT FILE TO INSPECT</div>
+          <div style="color:var(--text-dim);margin-top:4px">DEEP METADATA EXTRACTION</div>
+        </div>
+        <input type="file" id="inspect-file-input" style="display:none" onchange="handleInspectSelect(event)">
+        
+        <div id="inspect-preview" class="hidden">
+           <div id="inspect-results" style="background:rgba(0,0,0,0.3); border:1px solid rgba(0,255,204,0.1); border-radius:8px; padding:20px; font-family:var(--font-mono); overflow-y:auto; max-height:400px; margin-bottom:20px;">
+              <!-- Results go here -->
+           </div>
+           <button class="btn-secondary" style="width:100%; padding:14px; border-color:var(--teal); color:var(--teal);" onclick="clearInspect()">SCAN ANOTHER FILE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
   <symbol id="icon-home" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" stroke-width="2" fill="none"></polyline></symbol>
   <symbol id="icon-file" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></polyline></symbol>
@@ -523,7 +548,7 @@
       <div class="tool-btn" onclick="openMerge()"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-merge"></use></svg></span><div class="tool-label">Merge</div></div>
       <div class="tool-btn" onclick="openSplit()"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-split"></use></svg></span><div class="tool-label">Split</div></div>
       <div class="tool-btn" onclick="openRotate()"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-rotate"></use></svg></span><div class="tool-label">Rotate</div></div>
-      <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-inspect"></use></svg></span><div class="tool-label">Inspect</div></div>
+      <div class="tool-btn" onclick="openInspect()"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-inspect"></use></svg></span><div class="tool-label">Inspect</div></div>
       <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-print"></use></svg></span><div class="tool-label">Print</div></div>
       <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-sign"></use></svg></span><div class="tool-label">Sign</div></div>
       <div class="tool-btn"><span class="tool-emoji"><svg class="icon-svg"><use href="#icon-translate"></use></svg></span><div class="tool-label">Translate</div></div>

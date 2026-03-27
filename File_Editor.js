@@ -2055,3 +2055,86 @@ window.processRotation = async function() {
     }, 2500);
   }
 };
+
+// ── INSPECT ENGINE ──
+window.openInspect = function() {
+  const overlay = document.getElementById('inspect-overlay');
+  overlay.classList.remove('hidden');
+  overlay.querySelector('.tool-box').style.animation = 'fade-up 0.4s ease both';
+  window.clearInspect();
+};
+
+window.closeInspect = function() {
+  document.getElementById('inspect-overlay').classList.add('hidden');
+  window.clearInspect();
+};
+
+window.clearInspect = function() {
+  document.getElementById('inspect-preview').classList.add('hidden');
+  document.getElementById('inspect-dropzone').classList.remove('hidden');
+  document.getElementById('inspect-results').innerHTML = '';
+  document.getElementById('inspect-file-input').value = '';
+};
+
+window.handleInspectSelect = async function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  document.getElementById('inspect-dropzone').classList.add('hidden');
+  document.getElementById('inspect-preview').classList.remove('hidden');
+  
+  const resultsContainer = document.getElementById('inspect-results');
+  resultsContainer.innerHTML = '<div style="color:var(--teal); text-align:center;">INITIALIZING SCAN...</div>';
+
+  try {
+    let metadata = {
+      "FILE_NAME": file.name,
+      "FILE_SIZE": (file.size / 1024).toFixed(2) + " KB",
+      "FILE_TYPE": file.type || "Unknown/Binary",
+      "LAST_MODIFIED": new Date(file.lastModified).toLocaleString()
+    };
+
+    if (file.type === 'application/pdf') {
+       const arrayBuffer = await file.arrayBuffer();
+       const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+       
+       metadata["PDF_PAGES"] = pdfDoc.getPageCount();
+       metadata["PDF_TITLE"] = pdfDoc.getTitle() || "NOT_SET";
+       metadata["PDF_AUTHOR"] = pdfDoc.getAuthor() || "NOT_SET";
+       metadata["PDF_SUBJECT"] = pdfDoc.getSubject() || "NOT_SET";
+       metadata["PDF_CREATOR"] = pdfDoc.getCreator() || "NOT_SET";
+       metadata["PDF_PRODUCER"] = pdfDoc.getProducer() || "NOT_SET";
+       
+       const cDate = pdfDoc.getCreationDate();
+       metadata["CREATION_DATE"] = cDate ? cDate.toLocaleString() : "UNKNOWN";
+       
+       const mDate = pdfDoc.getModificationDate();
+       metadata["MOD_DATE"] = mDate ? mDate.toLocaleString() : "UNKNOWN";
+    }
+
+    renderInspectResults(metadata);
+    
+    if (window.logUserActivity) window.logUserActivity("INSPECT: " + file.name);
+
+  } catch (err) {
+    console.error("Inspection error:", err);
+    resultsContainer.innerHTML = `<div style="color:var(--red);">CRITICAL_SCAN_ERROR: ${err.message.toUpperCase()}</div>`;
+  }
+};
+
+function renderInspectResults(data) {
+  const container = document.getElementById('inspect-results');
+  let html = '<div style="display:flex; flex-direction:column; gap:12px;">';
+  
+  for (const [key, val] of Object.entries(data)) {
+    html += `
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(0,255,204,0.05); padding-bottom:4px;">
+        <span style="color:var(--text-dim); font-size:var(--fs-xs); letter-spacing:0.05em;">${key}</span>
+        <span style="color:var(--teal); font-size:var(--fs-sm); text-align:right; max-width:60%; overflow-wrap:break-word;">${val}</span>
+      </div>
+    `;
+  }
+  
+  html += '</div>';
+  container.innerHTML = html;
+}

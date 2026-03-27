@@ -1316,6 +1316,23 @@ body.light-mode .root-nav-item.active {
   height: 18px;
 }
 
+/* --- INSPECTION BAY STYLES --- */
+#inspect-results {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,255,204,0.2) transparent;
+}
+#inspect-results::-webkit-scrollbar {
+  width: 4px;
+}
+#inspect-results::-webkit-scrollbar-thumb {
+  background: rgba(0,255,204,0.2);
+  border-radius: 2px;
+}
+#inspect-results span:first-child {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+
 /* --- ADDITIONAL TOOL OVERRIDES --- */
 #split-ranges-container .range-card label { font-size: var(--fs-xs); margin-bottom: 4px; display: block; }
 #merge-preview span { font-size: var(--fs-xs); }
